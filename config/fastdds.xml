@@ -8,10 +8,10 @@
   </transport_descriptors>
   <participant profile_name="UDPParticipant" is_default_profile="true">
     <rtps>
-	<userTransports>
-	    <transport_id>udp_transport</transport_id>
-	</userTransports>
-	<useBuiltinTransports>false</useBuiltinTransports>
+      <userTransports>
+          <transport_id>udp_transport</transport_id>
+      </userTransports>
+      <useBuiltinTransports>false</useBuiltinTransports>
     </rtps>
   </participant>
 </profiles>
