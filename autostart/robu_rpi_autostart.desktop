@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=ROBU-RPI-Autostart
-Exec=bash -c "/home/robu/work/robu_rpi_ws/autostart/autostart.sh"
+Exec=bash -c "/home/robu/work/.robu/autostart/autostart.sh"
 StartupNotify=false
 Terminal=false
 
