@@ -1,6 +1,6 @@
 #set -e #Beendet das Skript bei Fehlern
 
-export ROBU_RPI_WS=/home/robu/work/robu_rpi_ws
+export ROBU_RPI_WS=/home/robu/work/.robu
 export DISPLAY=:0
 
 cd $ROBU_RPI_WS
