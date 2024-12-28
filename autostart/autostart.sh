@@ -1,7 +1,13 @@
+#!/bin/bash
 #set -e #Beendet das Skript bei Fehlern
 
-export ROBU_RPI_WS=/home/robu/work/.robu
 export DISPLAY=:0
+export ROBU_RPI_WS=/home/robu/work/.robu
+
+#display is always on
+xset s off
+xset -dpms
+xset s noblank
 
 cd $ROBU_RPI_WS
 git pull
