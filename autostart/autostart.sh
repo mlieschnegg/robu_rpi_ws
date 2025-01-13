@@ -14,5 +14,6 @@ cd
 #killall -9 /usr/bin/python3
 
 source /opt/ros/humble/setup.bash
+source /home/robu/work/.robu/install/setup.bash
 
 /usr/bin/python3 $ROBU_RPI_WS/autostart/autostart.py
