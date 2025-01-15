@@ -170,7 +170,7 @@ class LaunchApp(QMainWindow):
         button_layout.addWidget(self.add_button)
 
         self.delete_button = QPushButton("Launch-Datei -")
-        self.delete_button.clicked.connect(self.delete_launch_file)
+        self.delete_button.clicked.connect(self.delete_selected)
         button_layout.addWidget(self.delete_button)
 
         self.start_button = QPushButton("Starten")
@@ -212,8 +212,19 @@ class LaunchApp(QMainWindow):
                 self.list_widget.addItem(key)
                 self.launch_handlers[key] = (Ros2LaunchManager(), file_path, details["description"], details["arguments"].split())
 
-    def delete_launch_file(self):
-        pass
+    def delete_selected(self):
+        """Ausgewählte Launch-Dateien starten."""
+        selected_items = self.list_widget.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Warnung", "Bitte wähle mindestens eine Launch-Datei aus.")
+            return
+
+        for item in selected_items:
+            file_path_or_description = item.text()
+            self.launch_handlers.pop(file_path_or_description)
+
+        for item in list(self.list_widget.selectedItems()):
+            self.list_widget.takeItem(self.list_widget.row(item))
 
     def _load_launch_description(self, file_path):
         """Lädt die Launch-Datei."""
