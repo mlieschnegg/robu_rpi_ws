@@ -12,7 +12,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 from std_msgs.msg import Bool, String, ByteMultiArray, MultiArrayDimension, Int8MultiArray
 
-from rpi.utils import is_raspberry_pi
+from robu_rpi_examples.rpi.utils import is_raspberry_pi
 from rpi_ws281x import ws, Adafruit_NeoPixel, Color
 
 import rclpy
@@ -47,34 +47,37 @@ def new_ledstrip(numleds:int) -> Adafruit_NeoPixel:
                               LED_STRIP)
 
 class LEDDisplay(Node):
+
+    TEAM_LED_OFFSET:int = 30
+    TEAM_LED_NUM:int = 5
+
     def __init__(self, node_name: str):
         super().__init__(node_name)
 
         #Format: [lednr1 r1, g1, b1, w1, lednr2, r2, g2, b2, w2]
-        self.create_subscription(Int8MultiArray, "team1", self._team1_callback)
+        self.create_subscription(Int8MultiArray, "team1", self._team1_callback, 10)
 
-        TEAM_LED_OFFSET = 30
-        TEAM_LED_NUM = 5
         self._team_leds_config = [
-            {"pos": list(range(TEAM_LED_OFFSET+TEAM_LED_NUM*0, TEAM_LED_OFFSET+TEAM_LED_NUM*1)), "default-color": [0,0,0,255]},
-            {"pos": list(range(TEAM_LED_OFFSET+TEAM_LED_NUM*1, TEAM_LED_OFFSET+TEAM_LED_NUM*2)), "default-color": [0,0,0,255]},
-            {"pos": list(range(TEAM_LED_OFFSET+TEAM_LED_NUM*2, TEAM_LED_OFFSET+TEAM_LED_NUM*3)), "default-color": [0,0,0,255]},
-            {"pos": list(range(TEAM_LED_OFFSET+TEAM_LED_NUM*3, TEAM_LED_OFFSET+TEAM_LED_NUM*4)), "default-color": [0,0,0,255]},
-            {"pos": list(range(TEAM_LED_OFFSET+TEAM_LED_NUM*4, TEAM_LED_OFFSET+TEAM_LED_NUM*5)), "default-color": [0,0,0,255]},
-            {"pos": list(range(TEAM_LED_OFFSET+TEAM_LED_NUM*5, TEAM_LED_OFFSET+TEAM_LED_NUM*6)), "default-color": [0,0,0,255]},
+            {"pos": list(range(self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*0, self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*1)), "default-color": [0,0,0,255]},
+            {"pos": list(range(self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*1, self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*2)), "default-color": [0,0,0,255]},
+            {"pos": list(range(self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*2, self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*3)), "default-color": [0,0,0,255]},
+            {"pos": list(range(self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*3, self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*4)), "default-color": [0,0,0,255]},
+            {"pos": list(range(self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*4, self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*5)), "default-color": [0,0,0,255]},
+            {"pos": list(range(self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*5, self.TEAM_LED_OFFSET+self.TEAM_LED_NUM*6)), "default-color": [0,0,0,255]},
         ]
-        self._user_led_config = {"pos": list(range(0, TEAM_LED_OFFSET)), "default-color": [255,128,0,0]}
+        self._user_led_config = {"pos": list(range(0, self.TEAM_LED_OFFSET)), "default-color": [255,128,0,0]}
+
 
         numleds = max(
             [ max(config["pos"]) for config in self._team_leds_config ] + 
             self._user_led_config["pos"]) + 1
-
+        
         #pos = range(min(pos), max(pos)+1)        
         self._led_values = numleds*[[0,0,0,0]]
-        
         for config in self._team_leds_config:
             for pos in config["pos"]:
-                self._led_values = config["default-color"]
+                self._led_values[pos] = config["default-color"]
+
         for pos in self._user_led_config["pos"]:
             self._led_values[pos] = self._user_led_config["default-color"]
 
