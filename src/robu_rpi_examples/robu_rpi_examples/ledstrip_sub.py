@@ -20,10 +20,6 @@ from rpi_ws281x import ws, Adafruit_NeoPixel, Color
 #https://cdn.sparkfun.com/datasheets/BreakoutBoards/WS2812B.pdf
 #Installation der Bibliothek am Raspberry: sudo pip install rpi_ws281x
 
-#
-#ros2 topic pub /user std_msgs/msg/String "{data: li}" -t 10
-#ros2 topic pub /team2 std_msgs/msg/UInt8MultiArray "{ data: [0, 0, 255, 0, 0]}" -1
-
 NAME_DICT = {
     "li":{"katnr": 0, "vorname": "Michael", "color": [255,555,0,0]},
     "ambtin20": {"katnr": 1, "vorname": "Timo", "color": [255,0,0,0]},
