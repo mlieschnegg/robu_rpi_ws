@@ -22,7 +22,8 @@ setup(
     entry_points={
         'console_scripts': [
              'rgbstrip_sub=robu_rpi_examples.rgbstrip_sub:main',
-             'rgbstrip_pub=robu_rpi_examples.rgbstrip_pub:main'
+             'rgbstrip_pub=robu_rpi_examples.rgbstrip_pub:main',
+             'plf01_sub=robu_rpi_examples.ledstrip_sub:main'
         ],
     },
 )
