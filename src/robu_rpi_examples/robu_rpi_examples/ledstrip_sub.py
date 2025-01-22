@@ -2,6 +2,7 @@
 #from uebungen.rpi_utils import is_raspberry_pi
 import sys
 import signal
+import time
 
 import rclpy
 from rclpy.node import Node
@@ -10,23 +11,21 @@ import rclpy.qos
 import rclpy.timer
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
-from std_msgs.msg import Bool, String, ByteMultiArray, MultiArrayDimension, Int8MultiArray
+from std_msgs.msg import String, UInt8MultiArray
 
 from robu_rpi_examples.rpi.utils import is_raspberry_pi
 from rpi_ws281x import ws, Adafruit_NeoPixel, Color
-
-import rclpy
 
 #https://github.com/rpi-ws281x/rpi-ws281x-python
 #https://cdn.sparkfun.com/datasheets/BreakoutBoards/WS2812B.pdf
 #Installation der Bibliothek am Raspberry: sudo pip install rpi_ws281x
 
-#ros2 service call /camera_bl leddisplay_interfaces/srv/LEDCamera "{camera: left, brightness_percent: 50}"
-
-
+#
+#ros2 topic pub /user std_msgs/msg/String "{data: li}" -t 10
+#ros2 topic pub /team2 std_msgs/msg/UInt8MultiArray "{ data: [0, 0, 255, 0, 0]}" -1
 
 NAME_DICT = {
-    "li":{"katnr": 0, "vorname": "Michael"},
+    "li":{"katnr": 0, "vorname": "Michael", "color": [255,555,0,0]},
     "ambtin20": {"katnr": 1, "vorname": "Timo", "color": [255,0,0,0]},
     "baylun20": {"katnr": 2, "vorname": "Lukas", "color": [0,255,0,0]},
     "forman21": {"katnr": 3, "vorname": "Marco", "color": [0,0,255,0]},
@@ -83,13 +82,18 @@ class LEDDisplay(Node):
     def __init__(self, node_name: str):
         super().__init__(node_name)
 
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=10
+        )
         #Format: [lednr1 r1, g1, b1, w1, lednr2, r2, g2, b2, w2]
-        self.create_subscription(Int8MultiArray, "team1", self._team1_callback, 10)
-        self.create_subscription(Int8MultiArray, "team2", self._team2_callback, 10)
-        self.create_subscription(Int8MultiArray, "team3", self._team3_callback, 10)
-        self.create_subscription(Int8MultiArray, "team4", self._team4_callback, 10)
-        self.create_subscription(Int8MultiArray, "team5", self._team5_callback, 10)
-        self.create_subscription(Int8MultiArray, "team6", self._team6_callback, 10)
+        self.create_subscription(UInt8MultiArray, "team1", self._team1_callback, qos_profile)
+        self.create_subscription(UInt8MultiArray, "team2", self._team2_callback, qos_profile)
+        self.create_subscription(UInt8MultiArray, "team3", self._team3_callback, qos_profile)
+        self.create_subscription(UInt8MultiArray, "team4", self._team4_callback, qos_profile)
+        self.create_subscription(UInt8MultiArray, "team5", self._team5_callback, qos_profile)
+        self.create_subscription(UInt8MultiArray, "team6", self._team6_callback, qos_profile)
         self.create_subscription(String, "user", self._user_callback, 10)
 
         self._team_leds_config = [
@@ -121,28 +125,28 @@ class LEDDisplay(Node):
         self._hw_led_strip_begin()
 
 
-    def _team1_callback(self, msg:Int8MultiArray):
+    def _team1_callback(self, msg:UInt8MultiArray):
         #msg.data Format: lednr0, red0, green0, blue0, white0, lednr1, red1, green1, blue1, white1, ...
         led_vals = list(msg.data)
         self._update_team(led_vals, 0)
         
-    def _team2_callback(self, msg:Int8MultiArray):
+    def _team2_callback(self, msg:UInt8MultiArray):
         led_vals = list(msg.data)
         self._update_team(led_vals, 1)
 
-    def _team3_callback(self, msg:Int8MultiArray):
+    def _team3_callback(self, msg:UInt8MultiArray):
         led_vals = list(msg.data)
         self._update_team(led_vals, 2)
 
-    def _team4_callback(self, msg:Int8MultiArray):
+    def _team4_callback(self, msg:UInt8MultiArray):
         led_vals = list(msg.data)
         self._update_team(led_vals, 3)
 
-    def _team5_callback(self, msg:Int8MultiArray):
+    def _team5_callback(self, msg:UInt8MultiArray):
         led_vals = list(msg.data)
         self._update_team(led_vals, 4)
 
-    def _team6_callback(self, msg:Int8MultiArray):
+    def _team6_callback(self, msg:UInt8MultiArray):
         led_vals = list(msg.data)
         self._update_team(led_vals, 5)
 
@@ -152,24 +156,27 @@ class LEDDisplay(Node):
             
             lednr = NAME_DICT[msg.data]["katnr"]
             color = NAME_DICT[msg.data]["color"]
-            if (self._led_values[lednr]):
+            if max(self._led_values[lednr]):
                 self._led_values[lednr] = [0, 0, 0, 0]
-                self.get_logger().info(f"{NAME_DICT[msg.data]["vorname"]} -> LED wurde DEAKTIVIERT!")
+                self.get_logger().info(f"{NAME_DICT[msg.data]['vorname']} -> LED wurde DEAKTIVIERT!")
             else:
                 self._led_values[lednr] = color
-                self.get_logger().info(f"{NAME_DICT[msg.data]["vorname"]} -> LED wurde AKTIVIERT!")
+                self.get_logger().info(f"{NAME_DICT[msg.data]['vorname']} -> LED wurde AKTIVIERT!")
             self._hw_led_strip_set_color()
         except Exception as warn:
-            self.get_logger().warn(warn)
+            self.get_logger().warn(f"{warn}")
     
 
     def _update_team(self, led_vals:list, teamnr:int=0):
-        DATA_LEN = 5
-        for i in range(0, len(led_vals), DATA_LEN):
-            led_nr, red_val, green_val, blue_val, white_val = led_vals[i:i+DATA_LEN]
-            self._led_values[self.TEAM_LED_OFFSET + teamnr*self.TEAM_LED_NUM+led_nr] = [red_val, green_val, blue_val, white_val]
-
-        self._hw_led_strip_set_color()
+        #Absicherung falls der Benutzer eine falsche Länge übergibt
+        if (len(led_vals) % self.TEAM_LED_NUM == 0 ): 
+            for i in range(0, len(led_vals), self.TEAM_LED_NUM):
+                led_nr, red_val, green_val, blue_val, white_val = led_vals[i:i+self.TEAM_LED_NUM]
+                #Absicherung -> jedes Team hat nur self.TEAM_LED_NUM LEDs
+                if led_nr < self.TEAM_LED_NUM:
+                    self._led_values[self.TEAM_LED_OFFSET + teamnr*self.TEAM_LED_NUM+led_nr] = [red_val, green_val, blue_val, white_val]
+                    self.get_logger().info(f"Farbwert von Team {teamnr+1}/LED {led_nr} -> {[red_val, green_val, blue_val, white_val]}")
+            self._hw_led_strip_set_color()
 
     def _hw_led_strip_begin(self):
         if self._is_rpi:
@@ -179,20 +186,21 @@ class LEDDisplay(Node):
     def _hw_led_strip_set_color(self):
         if self._is_rpi:
             for i, (r,g,b,w) in enumerate(self._led_values):
-                self._hw_led_values.setPixelColorRGB(i,r, g, b, w)
+                self._hw_led_values.setPixelColorRGB(i, g, r, b, w)
             self._hw_led_values.show()
 
     def __del__(self):
         if self._is_rpi:
-            for i in range(self._hw_led_values.numPixels()):
-                self._hw_led_values.setPixelColorRGB(i,0, 0, 0, 0)
+            for i in range(len(self._led_values)):
+                self._led_values[i] = [0, 0, 0, 0]
+            self._hw_led_strip_set_color()
 
 def main(args=None):
     global node
     rclpy.init(args=args)
     node = LEDDisplay('plf01_ledstrip')
 
-    node.get_logger().info("plf01_dedstrip started!")
+    node.get_logger().info("plf01_ledstrip started!")
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
@@ -200,6 +208,7 @@ def main(args=None):
     finally:
         node.get_logger().info(f"Node {node.get_name()} wird beendet!")
         node.destroy_node()
+        del node
         try:
             rclpy.shutdown()
         except:
