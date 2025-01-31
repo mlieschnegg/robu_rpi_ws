@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QListWidget, QCheckBox, QLabel, QFileDialog, QMessageBox, QWidget,
     QDialog, QLineEdit
 )
+from PyQt5.QtCore import QProcess
 
 from PyQt5.QtGui import QFont
 
@@ -63,6 +64,22 @@ class Ros2LaunchManager:
         else:
             print("Kein laufender Launch-Service oder Prozess gefunden.")
 
+class CustomLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.keyboard_process = None
+
+    def focusInEvent(self, event):
+        """Wird aufgerufen, wenn das QLineEdit fokussiert wird."""
+        super().focusInEvent(event)  
+        self.show_keyboard()
+
+    def show_keyboard(self):
+        """Startet die On-Screen-Tastatur, falls sie nicht läuft."""
+        if self.keyboard_process is None or self.keyboard_process.state() == QProcess.ProcessState.NotRunning:
+            self.keyboard_process = QProcess(self)
+            self.keyboard_process.start("onboard")
+
 class LaunchFileDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -87,7 +104,8 @@ class LaunchFileDialog(QDialog):
         # Description Input
         description_layout = QHBoxLayout()
         self.description_label = QLabel("Beschreibung:")
-        self.description_input = QLineEdit()
+        self.description_input = CustomLineEdit()#QLineEdit()
+        
         description_layout.addWidget(self.description_label)
         description_layout.addWidget(self.description_input)
         main_layout.addLayout(description_layout)
