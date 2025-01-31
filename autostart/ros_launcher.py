@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import signal
 import json
@@ -15,7 +16,7 @@ from PyQt5.QtWidgets import (
 
 from PyQt5.QtGui import QFont
 
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QDir
 
 from launch_ros.actions import Node
 
@@ -114,9 +115,16 @@ class LaunchFileDialog(QDialog):
 
     def browse_file(self):
         """Öffnet einen Datei-Dialog, um eine Datei auszuwählen."""
-        file_path, _ = QFileDialog.getOpenFileName(self, "Launch-Datei auswählen", "", "Launch-Dateien (*.launch.py);;Alle Dateien (*.*)")
-        if file_path:
-            self.file_path_input.setText(file_path)
+        qfiledialog = QFileDialog(self)
+        qfiledialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+        qfiledialog.setOption(QFileDialog.Option.ShowDirsOnly, False)
+        qfiledialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+        qfiledialog.setFilter(qfiledialog.filter() | QDir.Filter.Hidden)
+        qfiledialog.setNameFilters(["Launch-Dateien (*.launch.py)", "Alle Dateien (*.*)"])
+        if qfiledialog.exec():
+            file_paths = qfiledialog.selectedFiles()
+            if file_paths:
+                self.file_path_input.setText(file_paths[0])
 
     def get_details(self):
         """Gibt die Details aus den Eingabefeldern zurück."""
@@ -181,6 +189,10 @@ class LaunchApp(QMainWindow):
         self.stop_button.clicked.connect(self.stop_all)
         button_layout.addWidget(self.stop_button)
 
+        self.killall_button = QPushButton("KillAll")
+        self.killall_button.clicked.connect(self.killall_python)
+        button_layout.addWidget(self.killall_button)
+
         layout.addLayout(button_layout)
 
         autostart_layout = QHBoxLayout()
@@ -203,7 +215,7 @@ class LaunchApp(QMainWindow):
 
     def add_launch_file(self):
         """Öffnet den Dialog und verarbeitet die Eingaben."""
-        dialog = LaunchFileDialog(self)
+        dialog = LaunchFileDialog(self) 
         if dialog.exec() == QDialog.Accepted:
             details = dialog.get_details()
             file_path = details["file_path"]
@@ -268,6 +280,20 @@ class LaunchApp(QMainWindow):
         for handler, file_path, description, arguments in self.launch_handlers.values():
             handler.stop_launch()
         QMessageBox.information(self, "Info", "Alle Launch-Dateien wurden gestoppt.")
+
+    def killall_python(self):
+        # pgrep -af python
+        # Eigene PID abrufen
+        current_pid = os.getpid()
+        # Alle Python-Prozesse abrufen (außer sich selbst)
+        #processes = subprocess.check_output(["pgrep", "-f", "python"]).decode().split()
+        processes = subprocess.check_output(["pgrep", "-af", "python"]).decode().splitlines()
+        for process in processes:
+            args = process.split()
+            pid = args[0]
+            if int(pid) != current_pid:
+                print(f"Killing PID {pid}")
+                os.system(f"kill -9 {pid}")
 
     def set_autostart(self):
         """Schaltet den Autostart-Status um."""
