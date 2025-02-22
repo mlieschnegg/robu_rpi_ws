@@ -21,7 +21,7 @@ class PowerSwitch(Node):
                                                           "robuboard/rpi/powerswitch_state", 
                                                           rclpy.qos.QoSProfile(depth=10))
         
-        self._timer_power_switch = self.create_timer(0.1, self._timer_power_switch_callback)
+        self._timer_power_switch = self.create_timer(1.0, self._timer_power_switch_callback)
 
         self._sub_powerswtich_mmt = self.create_subscription(ByteMultiArray, 
                                                              "robuboard/mmt/powerswitch_state",
@@ -51,11 +51,11 @@ class PowerSwitch(Node):
         #self.get_logger().info(f"teensy power switch state: {msg.data}")
         self._mmt_power_switch_state = [bool(val) for val in msg.data]
 
-        if self._mmt_power_switch_state[1]: #mmty enables the power-ic to switch on
-            try:
-              robuboard.config_power_switch_to_input()
-            except:
-              pass
+        # if self._mmt_power_switch_state[1]: #mmty enables the power-ic to switch on
+        #     try:
+        #       robuboard.disable_5v_supply()
+        #     except:
+        #       pass
         
            
 

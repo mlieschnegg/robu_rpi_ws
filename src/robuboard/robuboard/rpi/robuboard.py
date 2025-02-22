@@ -10,12 +10,13 @@ except:
 
 GPIO_TEENSY_RESET = 23
 GPIO_POWER_SWITCH = 20
+GPIO_POWER_REGULATOR_EN = 26
 
 global robuboard_init_gpios
-global robuboard_force_5v_supply_on
+global robuboard_enable_5v_supply_on
 
 robuboard_init_gpios:bool = False
-robuboard_force_5v_supply_on:bool = False
+robuboard_enable_5v_supply_on:bool = False
 
 def init_gpios():
     global robuboard_init_gpios
@@ -23,35 +24,35 @@ def init_gpios():
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(GPIO_TEENSY_RESET, GPIO.OUT)
-        force_on_5v_supply()
-        #GPIO.setup(GPIO_POWER_SWITCH, GPIO.IN)
+        GPIO.output(GPIO_TEENSY_RESET, GPIO.LOW)
+
+        GPIO.setup(GPIO_POWER_REGULATOR_EN, GPIO.OUT)
+        enable_5v_supply()
+        
+        GPIO.setup(GPIO_POWER_SWITCH, GPIO.IN)
+        
         robuboard_init_gpios = True
 
 def is_on_5v_supply() -> bool:
-    global robuboard_force_5v_supply_on
-    return robuboard_force_5v_supply_on
+    return robuboard_enable_5v_supply_on
+    # return GPIO.input(GPIO_POWER_REGULATOR_EN)
 
-
-def force_on_5v_supply():
-    global robuboard_force_5v_supply_on
-    GPIO.setup(GPIO_POWER_SWITCH, GPIO.OUT)
+def enable_5v_supply():
+    global robuboard_enable_5v_supply_on
     GPIO.output(GPIO_POWER_SWITCH, GPIO.HIGH)
-    robuboard_force_5v_supply_on = True
+    robuboard_enable_5v_supply_on = True
 
-def config_power_switch_to_input():
-    global robuboard_force_5v_supply_on
-    GPIO.setup(GPIO_POWER_SWITCH, GPIO.IN)
-    robuboard_force_5v_supply_on = False
+def disable_5v_supply():
+    global robuboard_enable_5v_supply_on
+    GPIO.output(GPIO_POWER_SWITCH, GPIO.LOW)
+    robuboard_enable_5v_supply_on = False
 
 def get_power_switch() -> bool:
-    global robuboard_force_5v_supply_on
-    if not robuboard_force_5v_supply_on:
-        return GPIO.input(GPIO_POWER_SWITCH)
-    return True
+    return GPIO.input(GPIO_POWER_SWITCH)
 
 def power_off_teensy():
     init_gpios()
-    force_on_5v_supply()
+    enable_5v_supply()
     print("powering off teensy...")
     GPIO.output(GPIO_TEENSY_RESET, GPIO.HIGH)
     time.sleep(5)
