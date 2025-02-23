@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+import rclpy.node
 import rclpy.publisher
 import rclpy.qos
 import rclpy.timer
@@ -10,7 +11,7 @@ import robuboard.rpi.robuboard as robuboard
 class PowerSwitch(Node):
     _pub_powerswitch_rpi : rclpy.publisher.Publisher = None
     _timer_power_switch : rclpy.timer.Timer = None
-    _mmt_power_switch_state : list[bool] = []
+    _mmt_power_switch_state : list[bool] = [False, False]
 
     def __init__(self, node_name : str):
         super().__init__(node_name)
@@ -49,23 +50,69 @@ class PowerSwitch(Node):
     def _sub_powerswitch_mmt_state(self, msg : ByteMultiArray):
         
         #self.get_logger().info(f"teensy power switch state: {msg.data}")
-        self._mmt_power_switch_state = [bool(val) for val in msg.data]
-
-        # if self._mmt_power_switch_state[1]: #mmty enables the power-ic to switch on
-        #     try:
-        #       robuboard.disable_5v_supply()
-        #     except:
-        #       pass
+        vals = [bool(val) for val in msg.data]
+        if self._mmt_power_switch_state[1] and not vals[1]: #mmty enables the power-ic to switch on
+            try:
+                import subprocess
+                r, g, b = 0, 255, 0
+                command = f"sudo -E env \"ROS_LOCALHOST_ONLY=$ROS_LOCALHOST_ONLY\" \
+                    \"RMW_FASTRTPS_USE_SHM=$RMW_FASTRTPS_USE_SHM\" \
+                    \"ROS_DOMAIN_ID=$ROS_DOMAIN_ID\" \"RMW_IMPLEMENTATION=$RMW_IMPLEMENTATION\" \
+                    \"PYTHONPATH=$PYTHONPATH\" \"LD_LIBRARY_PATH=$LD_LIBRARY_PATH\" \"PATH=$PATH\" \
+                    \"USER=$USER\" bash -c \
+                    ros2 run robuboard set_status_led --ros-args -p r:={r} -p g:={g} -p b:={b}"
+                subprocess.run(command, shell=True)
+            #   robuboard.disable_5v_supply()
+            except:
+              pass
+        self._mmt_power_switch_state = vals
         
-           
+def main_set_status_led(args=None):
+    rclpy.init(args=args)
+    mynode = rclpy.node.Node("set_status_led")
+    mynode.declare_parameters("", [("r", 255), ("g", 255), ("b", 51)])
+    try:
+        mynode.get_logger().info("Setting status LED!")
+        
+        robuboard.set_status_led(mynode.get_parameter("r").value,
+                                 mynode.get_parameter("g").value,
+                                 mynode.get_parameter("b").value)
+    except KeyboardInterrupt:
+        pass
+    mynode.destroy_node()
+    rclpy.shutdown()
 
 def main_reset_teensy(args=None):
     rclpy.init(args=args)
+    mynode = rclpy.node.Node("reset_teensy")
     try:
-        print("Restarting Teensy!")
+        mynode.get_logger().info("Restarting Teensy!")
         robuboard.power_on_teensy()
-    except:
+    except KeyboardInterrupt:
        pass
+    mynode.destroy_node()
+    rclpy.shutdown()
+
+def main_start_bootloader_teensy(args=None):
+    rclpy.init(args=args)
+    mynode = rclpy.node.Node("start_bootloader_teensy")
+    try:
+        mynode.get_logger().info("Starting Teensy Bootloader!")
+        robuboard.start_bootloader_teensy()
+    except KeyboardInterrupt:
+        pass
+    mynode.destroy_node()
+    rclpy.shutdown()
+
+def main_upload_firmware_teensy(args=None):
+    rclpy.init(args=args)
+    mynode = rclpy.node.Node("upload_firmware_teensy")
+    try:
+        mynode.get_logger().info("Uploading Firmware to Teensy!")
+        robuboard.upload_firmware_teensy()
+    except KeyboardInterrupt:
+        pass
+    mynode.destroy_node()
     rclpy.shutdown()
 
 def main_powerswitch(args=None):
