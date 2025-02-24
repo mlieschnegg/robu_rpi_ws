@@ -16,13 +16,40 @@ def is_raspberry_pi_cm():
         cpuinfo = f.read()
     return re.search(r"^Model\s*:\s*Raspberry Pi Compute Module", cpuinfo, flags=re.M) is not None
 
-def is_mmteensy():
-    from glob import glob
+
+def is_bootloader_teensy():
+    import subprocess
     try:
-        teensy_detected = True if len(glob("/dev/serial/by-id/*Teensy*")) == 1 else False
-    except Exception:
-        teensy_detected = False
-    return teensy_detected
+        result = subprocess.run(["lsusb"], capture_output=True, text=True, check=True)
+        return "Teensy Halfkay" in result.stdout
+    except subprocess.CalledProcessError:
+        return False 
+
+def is_serial_teensy():
+    import subprocess
+    try:
+        result = subprocess.run(["lsusb"], capture_output=True, text=True, check=True)
+        return "Teensyduino Serial" in result.stdout
+    except subprocess.CalledProcessError:
+        return False 
+
+    
+def is_mmteensy():
+    import subprocess
+    try:
+        result = subprocess.run(["lsusb"], capture_output=True, text=True, check=True)
+        return "Teensy" in result.stdout
+    except subprocess.CalledProcessError:
+        return False 
+    
+# def is_mmteensy():
+#     from glob import glob
+#     try:
+
+#         teensy_detected = True if len(glob("/dev/serial/by-id/*Teensy*")) == 1 else False
+#     except Exception:
+#         teensy_detected = False
+#     return teensy_detected
 
 def is_robuboard():
     return is_raspberry_pi() and is_mmteensy()

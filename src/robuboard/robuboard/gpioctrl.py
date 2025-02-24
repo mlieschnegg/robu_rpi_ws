@@ -77,10 +77,12 @@ def main_set_status_led(args=None):
     mynode.declare_parameters("", [("r", 255), ("g", 255), ("b", 51)])
     try:
         mynode.get_logger().info("Setting status LED!")
-        
-        robuboard.set_status_led(mynode.get_parameter("r").value,
-                                 mynode.get_parameter("g").value,
-                                 mynode.get_parameter("b").value)
+        r = mynode.get_parameter("r").get_parameter_value().integer_value
+        g = mynode.get_parameter("g").get_parameter_value().integer_value
+        b = mynode.get_parameter("b").get_parameter_value().integer_value
+        mynode.get_logger().info(f"Received LED values: r={r}, g={g}, b={b}")
+        robuboard.set_status_led(r, g, b)
+        # rclpy.spin(mynode)
     except KeyboardInterrupt:
         pass
     mynode.destroy_node()

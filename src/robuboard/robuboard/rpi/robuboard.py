@@ -1,4 +1,4 @@
-from robuboard.rpi.utils import is_raspberry_pi, is_mmteensy, is_robuboard
+from robuboard.rpi.utils import is_raspberry_pi, is_mmteensy, is_robuboard, is_bootloader_teensy, is_serial_teensy
 
 import time
 import sys
@@ -40,12 +40,12 @@ def is_on_5v_supply() -> bool:
 
 def enable_5v_supply():
     global robuboard_enable_5v_supply_on
-    GPIO.output(GPIO_POWER_SWITCH, GPIO.HIGH)
+    GPIO.output(GPIO_POWER_REGULATOR_EN, GPIO.HIGH)
     robuboard_enable_5v_supply_on = True
 
 def disable_5v_supply():
     global robuboard_enable_5v_supply_on
-    GPIO.output(GPIO_POWER_SWITCH, GPIO.LOW)
+    GPIO.output(GPIO_POWER_REGULATOR_EN, GPIO.LOW)
     robuboard_enable_5v_supply_on = False
 
 def get_power_switch() -> bool:
@@ -53,6 +53,11 @@ def get_power_switch() -> bool:
 
 def power_off_teensy():
     init_gpios()
+
+    if is_mmteensy() and is_bootloader_teensy():
+        print("Bootloader is activated. Please Upload a firmware!")
+        return
+    
     enable_5v_supply()
     print("powering off teensy...")
     GPIO.output(GPIO_TEENSY_RESET, GPIO.HIGH)
@@ -62,6 +67,9 @@ def power_off_teensy():
 def power_on_teensy():
     init_gpios()
 
+    if is_mmteensy() and is_bootloader_teensy():
+        print("Bootloader is activated. Please Upload a firmware!")
+        return
     power_off_teensy()
     print("powering on teensy...")
     GPIO.output(GPIO_TEENSY_RESET, GPIO.HIGH)
@@ -73,10 +81,21 @@ def start_bootloader_teensy():
     import subprocess
     init_gpios()
     enable_5v_supply()
-    print("starting bootloader on teensy...")
-    subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-b"])
 
-def upload_firmware_teensy(firmware_path:str="~/work/robocup24-teensy/.pio/build/teensymm/firmware.hex"):
+    if is_mmteensy() and not is_bootloader_teensy():
+        print("starting bootloader on teensy...")
+        # argument -b is not working
+        # subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-b"])
+        firmware_path:str="/home/robu/work/robocup-teensy/.pio/build/teensymm/firmware.hex"
+        subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", firmware_path],
+                       stdout=subprocess.DEVNULL,  # Standardausgabe unterdrücken
+                        stderr=subprocess.DEVNULL)  # Fehlerausgabe unterdrücken
+    elif is_bootloader_teensy():
+        print("bootloader allready activated!")
+    else:
+        print("invalid state of teensy! Press boot switch!")
+
+def upload_firmware_teensy(firmware_path:str="/home/robu/work/robocup-teensy/.pio/build/teensymm/firmware.hex"):
     import subprocess
     init_gpios()
     enable_5v_supply()
