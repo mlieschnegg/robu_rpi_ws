@@ -1,4 +1,4 @@
-from robuboard.rpi.utils import is_raspberry_pi
+from robuboard.rpi.utils import is_raspberry_pi, is_mmteensy, is_robuboard
 
 import time
 import sys
@@ -103,6 +103,6 @@ def set_status_led(r:int=255, g:int=255, b:int=51):
 if __name__ == '__main__':
     # start_status_led_with_sudo()
     print(sys.argv)
-    if is_raspberry_pi():
+    if is_robuboard():
         power_on_teensy()
 

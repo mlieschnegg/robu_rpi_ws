@@ -10,7 +10,13 @@ xset -dpms
 xset s noblank
 
 cd $ROBU_RPI_WS
-git pull
+# git pull
+if git pull | grep -q 'Already up to date.'; then
+    echo "Repository is already up to date."
+else
+    colcon build
+fi
+#go to home directory
 cd
 
 # Prüfen, ob der Prozess "screen" existiert
@@ -21,5 +27,11 @@ cd
 
 source /opt/ros/humble/setup.bash
 source /home/robu/work/.robu/install/setup.bash
+
+# source /home/robu/work/ROBU/robu_rpi_ws/install/setup.bash
+# export PYTHONPATH=/home/robu/work/ROBU/robu_rpi_ws/src/robuboard/robuboard/rpi:$PYTHONPATH
+# if /usr/bin/python3 -c "from robuboard import is_robuboard; print(is_robuboard())" | grep -q "True"; then
+#     ros2 run robuboard powerswitch &
+# fi
 
 /usr/bin/python3 $ROBU_RPI_WS/autostart/ros_launcher.py
