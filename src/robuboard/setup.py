@@ -22,7 +22,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "teensy_reset = robuboard.gpioctrl:main_reset_teensy",
+            "reset_teensy = robuboard.gpioctrl:main_reset_teensy",
             "powerswitch = robuboard.gpioctrl:main_powerswitch",
             "set_status_led = robuboard.gpioctrl:main_set_status_led",
             "start_bootloader_teensy = robuboard.gpioctrl:main_start_bootloader_teensy",
