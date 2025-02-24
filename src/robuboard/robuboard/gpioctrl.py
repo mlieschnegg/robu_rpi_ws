@@ -5,7 +5,7 @@ import rclpy.publisher
 import rclpy.qos
 import rclpy.timer
 from std_msgs.msg import Bool, String, ByteMultiArray, MultiArrayDimension
-from robuboard.rpi.utils import is_raspberry_pi
+from robuboard.rpi.utils import is_raspberry_pi, is_robuboard, is_mmteensy
 import robuboard.rpi.robuboard as robuboard
 
 class PowerSwitch(Node):
@@ -17,7 +17,11 @@ class PowerSwitch(Node):
         super().__init__(node_name)
         if is_raspberry_pi():
             robuboard.init_gpios()
-
+        else:
+            msg = "This node can only run on a Raspberry Pi!"
+            self.get_logger().error(msg)
+            self.destroy_node()
+            raise Warning(msg)
         self._pub_powerswitch_rpi = self.create_publisher(ByteMultiArray, 
                                                           "robuboard/rpi/powerswitch_state", 
                                                           rclpy.qos.QoSProfile(depth=10))
@@ -86,8 +90,11 @@ def main_reset_teensy(args=None):
     rclpy.init(args=args)
     mynode = rclpy.node.Node("reset_teensy")
     try:
-        mynode.get_logger().info("Restarting Teensy!")
-        robuboard.power_on_teensy()
+        if is_robuboard():
+            mynode.get_logger().info("Restarting Teensy!")
+            robuboard.power_on_teensy()
+        else:
+            mynode.get_logger().error("No RobuBoard found!")
     except KeyboardInterrupt:
        pass
     mynode.destroy_node()
@@ -97,8 +104,11 @@ def main_start_bootloader_teensy(args=None):
     rclpy.init(args=args)
     mynode = rclpy.node.Node("start_bootloader_teensy")
     try:
-        mynode.get_logger().info("Starting Teensy Bootloader!")
-        robuboard.start_bootloader_teensy()
+        if is_mmteensy():
+            mynode.get_logger().info("Starting Teensy Bootloader!")
+            robuboard.start_bootloader_teensy()
+        else:
+            mynode.get_logger().error("No Teensy found!")
     except KeyboardInterrupt:
         pass
     mynode.destroy_node()
@@ -108,8 +118,11 @@ def main_upload_firmware_teensy(args=None):
     rclpy.init(args=args)
     mynode = rclpy.node.Node("upload_firmware_teensy")
     try:
-        mynode.get_logger().info("Uploading Firmware to Teensy!")
-        robuboard.upload_firmware_teensy()
+        if is_mmteensy():
+            mynode.get_logger().info("Uploading Firmware to Teensy!")
+            robuboard.upload_firmware_teensy()
+        else:
+            mynode.get_logger().error("No Teensy found!")
     except KeyboardInterrupt:
         pass
     mynode.destroy_node()
@@ -117,14 +130,18 @@ def main_upload_firmware_teensy(args=None):
 
 def main_powerswitch(args=None):
   rclpy.init(args=args)
-  node = PowerSwitch("PowerSwitch")
+  node = None
   try:
+      node = PowerSwitch("PowerSwitch")
       rclpy.spin(node)
   except KeyboardInterrupt:
       print("Du hast STRG+C gedrückt!")  # STRG+C abfangen
+  except Warning as w:
+      print(w)
   finally:
-    node.get_logger().info(f"Node {node.get_name()} wird beendet!")
-    node.destroy_node()
+    if node is not None:
+        node.get_logger().info(f"Node {node.get_name()} wird beendet!")
+        node.destroy_node()
     try:
       rclpy.shutdown()
     except:
