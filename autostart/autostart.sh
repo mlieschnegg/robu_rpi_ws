@@ -11,9 +11,7 @@ xset s noblank
 
 cd $ROBU_RPI_WS
 # git pull
-if git pull | grep -q 'Already up to date.'; then
-    echo "Repository is already up to date."
-else
+if ! (git pull | grep -q 'Already up to date.'); then
     colcon build
 fi
 #go to home directory
@@ -28,10 +26,10 @@ cd
 source /opt/ros/humble/setup.bash
 source /home/robu/work/.robu/install/setup.bash
 
-# source /home/robu/work/ROBU/robu_rpi_ws/install/setup.bash
-# export PYTHONPATH=/home/robu/work/ROBU/robu_rpi_ws/src/robuboard/robuboard/rpi:$PYTHONPATH
-# if /usr/bin/python3 -c "from robuboard import is_robuboard; print(is_robuboard())" | grep -q "True"; then
-#     ros2 run robuboard powerswitch &
-# fi
+if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard; print(is_robuboard())" | grep -q "True"; then
+    echo "Robuboard detected! Starting Robuboard services..."
+    ros2 run robuboard powerswitch &
+    ros2 launch robuboard set_status_led.launch.py
+fi
 
 /usr/bin/python3 $ROBU_RPI_WS/autostart/ros_launcher.py
