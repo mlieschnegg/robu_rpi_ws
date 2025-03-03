@@ -27,6 +27,8 @@ setup(
             "set_status_led = robuboard.gpioctrl:main_set_status_led",
             "start_bootloader_teensy = robuboard.gpioctrl:main_start_bootloader_teensy",
             "upload_firmware_teensy = robuboard.gpioctrl:main_upload_firmware_teensy",
+            "build_firmware_teensy = robuboard.gpioctrl:main_build_firmware_teensy",
+            "build_upload_firmware_teensy = robuboard.gpioctrl:main_build_upload_firmware_teensy",
         ],
     },
 )

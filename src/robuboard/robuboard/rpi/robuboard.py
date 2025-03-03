@@ -102,6 +102,15 @@ def upload_firmware_teensy(firmware_path:str="/home/robu/work/robocup-teensy/.pi
     print("uploading firmware to teensy...")
     subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-w", firmware_path])
 
+
+def build_firmware_teensy(firmware_path:str="/home/robu/work/robocup-teensy/"):
+    import subprocess
+    init_gpios()
+    enable_5v_supply()
+    print("building firmware for teensy...")
+    subprocess.run(["pio", "run", firmware_path], cwd=firmware_path)
+
+
 def start_status_led_with_sudo(r:int=255, g:int=255, b:int=51):
     import subprocess
     command = f"sudo python3 -c 'from robuboard.rpi.robuboard import set_status_led; set_status_led({r}, {g}, {b})'"

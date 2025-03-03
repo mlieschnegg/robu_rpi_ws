@@ -130,6 +130,36 @@ def main_upload_firmware_teensy(args=None):
     mynode.destroy_node()
     rclpy.shutdown()
 
+def main_build_firmware_teensy(args=None):
+    rclpy.init(args=args)
+    mynode = rclpy.node.Node("build_firmware_teensy")
+    try:
+        if is_mmteensy():
+            mynode.get_logger().info("Building firmware!")
+            robuboard.build_firmware_teensy()
+        else:
+            mynode.get_logger().error("No Teensy found!")
+    except KeyboardInterrupt:
+        pass
+    mynode.destroy_node()
+    rclpy.shutdown()
+
+def main_build_upload_firmware_teensy(args=None):
+    rclpy.init(args=args)
+    mynode = rclpy.node.Node("build_firmware_teensy")
+    try:
+        if is_mmteensy():
+            mynode.get_logger().info("Building firmware!")
+            robuboard.start_bootloader_teensy()
+            robuboard.build_firmware_teensy()
+            robuboard.upload_firmware_teensy()
+        else:
+            mynode.get_logger().error("No Teensy found!")
+    except KeyboardInterrupt:
+        pass
+    mynode.destroy_node()
+    rclpy.shutdown()
+
 def main_powerswitch(args=None):
   rclpy.init(args=args)
   node = None
