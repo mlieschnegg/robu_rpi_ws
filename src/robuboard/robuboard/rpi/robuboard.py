@@ -108,7 +108,7 @@ def build_firmware_teensy(firmware_path:str="/home/robu/work/robocup-teensy/"):
     init_gpios()
     enable_5v_supply()
     print("building firmware for teensy...")
-    subprocess.run(["pio", "run", firmware_path], cwd=firmware_path)
+    subprocess.run(["pio", "run"], cwd=firmware_path)
 
 
 def start_status_led_with_sudo(r:int=255, g:int=255, b:int=51):
