@@ -64,7 +64,7 @@ class PowerSwitch(Node):
                     \"ROS_DOMAIN_ID=$ROS_DOMAIN_ID\" \"RMW_IMPLEMENTATION=$RMW_IMPLEMENTATION\" \
                     \"PYTHONPATH=$PYTHONPATH\" \"LD_LIBRARY_PATH=$LD_LIBRARY_PATH\" \"PATH=$PATH\" \
                     \"USER=$USER\" bash -c \
-                    ros2 run robuboard set_status_led --ros-args -p r:={r} -p g:={g} -p b:={b}"
+                    'ros2 run robuboard set_status_led --ros-args -p r:={r} -p g:={g} -p b:={b}'"
                 subprocess.run(command, shell=True)
             #   robuboard.disable_5v_supply()
             except:
@@ -74,7 +74,7 @@ class PowerSwitch(Node):
 def main_set_status_led(args=None):
     rclpy.init(args=args)
     mynode = rclpy.node.Node("set_status_led")
-    mynode.declare_parameters("", [("r", 255), ("g", 255), ("b", 51)])
+    mynode.declare_parameters("", [("r", 255), ("g", 140), ("b", 50)])
     try:
         mynode.get_logger().info("Setting status LED!")
         r = mynode.get_parameter("r").get_parameter_value().integer_value
