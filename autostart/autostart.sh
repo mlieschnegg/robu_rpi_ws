@@ -26,6 +26,10 @@ cd
 source /opt/ros/humble/setup.bash
 source /home/robu/work/.robu/install/setup.bash
 
+source /home/robu/work/microros_ws/install/local_setup.bash
+source /home/robu/work/robocup-ros/install/setup.bash
+source /home/robu/work/robocup-gui/install/setup.bash
+
 if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard; print(is_robuboard())" | grep -q "True"; then
     echo "Robuboard detected! Starting Robuboard services..."
     ros2 run robuboard powerswitch &
