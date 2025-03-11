@@ -5,15 +5,17 @@ from launch.substitutions import LaunchConfiguration, TextSubstitution
 
 
 def generate_launch_description(): 
-    larg_red = DeclareLaunchArgument('r', default_value='255', description='Red value for the status LED')
-    larg_green = DeclareLaunchArgument('g', default_value='140', description='Green value for the status LED')
-    larg_blue = DeclareLaunchArgument('b',default_value='50',description='Blue value for the status LED')
+    larg_red = DeclareLaunchArgument('r', default_value='50', description='Red value for the status LED')
+    larg_green = DeclareLaunchArgument('g', default_value='10', description='Green value for the status LED')
+    larg_blue = DeclareLaunchArgument('b',default_value='0',description='Blue value for the status LED')
+    larg_white = DeclareLaunchArgument('w',default_value='0',description='White value for the status LED')
 
     # ROS-Parameter als LaunchConfiguration
     param_r = LaunchConfiguration('r')
     param_g = LaunchConfiguration('g')
     param_b = LaunchConfiguration('b')
-        
+    param_w = LaunchConfiguration('w')
+
     node_status_led = ExecuteProcess(
         cmd=[
             "sudo",
@@ -33,7 +35,8 @@ def generate_launch_description():
                 '--ros-args '
                 '-p r:=${r} '
                 '-p g:=${g} '
-                '-p b:=${b}'
+                '-p b:=${b} '
+                '-p w:=${w} '
             )),
             "'"
 
@@ -42,6 +45,7 @@ def generate_launch_description():
             'r': param_r,
             'g': param_g,
             'b': param_b,
+            'w': param_w,
         },
         shell=True,
         output='screen'

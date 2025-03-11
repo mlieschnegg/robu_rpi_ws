@@ -117,13 +117,13 @@ def start_status_led_with_sudo(r:int=255, g:int=255, b:int=51):
     subprocess.run(command, shell=True)
 
 #run this script with sudo!
-def set_status_led(r:int=255, g:int=255, b:int=51):
+def set_status_led(r:int=50, g:int=10, b:int=0, w:int=0):
     print("Setting status LED!")
     if is_raspberry_pi():
         from rpi_ws281x import Adafruit_NeoPixel, Color, ws
-        status_led = Adafruit_NeoPixel(1, GPIO_STATUS_LED, strip_type=ws.WS2811_STRIP_GRB)  
+        status_led = Adafruit_NeoPixel(1, GPIO_STATUS_LED, strip_type=ws.SK6812_STRIP_RGBW)  
         status_led.begin()
-        status_led.setPixelColor(0, Color(r, g, b))
+        status_led.setPixelColor(0, Color(r, g, b, w))
         status_led.show()
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)

@@ -74,14 +74,15 @@ class PowerSwitch(Node):
 def main_set_status_led(args=None):
     rclpy.init(args=args)
     mynode = rclpy.node.Node("set_status_led")
-    mynode.declare_parameters("", [("r", 255), ("g", 140), ("b", 50)])
+    mynode.declare_parameters("", [("r", 50), ("g", 10), ("b", 0), ("w", 0)])
     try:
         mynode.get_logger().info("Setting status LED!")
         r = mynode.get_parameter("r").get_parameter_value().integer_value
         g = mynode.get_parameter("g").get_parameter_value().integer_value
         b = mynode.get_parameter("b").get_parameter_value().integer_value
-        mynode.get_logger().info(f"Received LED values: r={r}, g={g}, b={b}")
-        robuboard.set_status_led(r, g, b)
+        w = mynode.get_parameter("w").get_parameter_value().integer_value
+        mynode.get_logger().info(f"Received LED values: r={r}, g={g}, b={b}, w={w}")
+        robuboard.set_status_led(r, g, b, w)
         # rclpy.spin(mynode)
     except KeyboardInterrupt:
         pass
