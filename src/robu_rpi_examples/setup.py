@@ -23,7 +23,8 @@ setup(
         'console_scripts': [
              'rgbstrip_sub=robu_rpi_examples.rgbstrip_sub:main',
              'rgbstrip_pub=robu_rpi_examples.rgbstrip_pub:main',
-             'ledstrip_sub=robu_rpi_examples.ledstrip_sub:main'
+             'ledstrip_sub=robu_rpi_examples.ledstrip_sub:main',
+             'camera_image_pub=robu_rpi_examples.camera_image_pub:main'
         ],
     },
 )
