@@ -162,23 +162,32 @@ def main_build_upload_firmware_teensy(args=None):
     rclpy.shutdown()
 
 def main_powerswitch(args=None):
-  rclpy.init(args=args)
-  node = None
-  try:
-      node = PowerSwitch("PowerSwitch")
-      rclpy.spin(node)
-  except KeyboardInterrupt:
-      print("Du hast STRG+C gedrückt!")  # STRG+C abfangen
-  except Warning as w:
-      print(w)
-  finally:
-    if node is not None:
-        node.get_logger().info(f"Node {node.get_name()} wird beendet!")
-        node.destroy_node()
+    rclpy.init(args=args)
+    temp_node = rclpy.create_node('__check_node__')
+    node = None
     try:
-      rclpy.shutdown()
-    except:
-      pass
+        nodes_info = temp_node.get_node_names_and_namespaces()
+        running_node_names = [name for name, ns in nodes_info]
+
+        target_name = 'PowerSwitch'
+        temp_node.destroy_node()
+
+        if target_name not in running_node_names:
+            node = PowerSwitch(target_name)
+            rclpy.spin(node)
+
+    except KeyboardInterrupt:
+        print("Du hast STRG+C gedrückt!")  # STRG+C abfangen
+    except Warning as w:
+        print(w)
+    finally:
+        if node is not None:
+            node.get_logger().info(f"Node {node.get_name()} wird beendet!")
+            node.destroy_node()
+        try:
+            rclpy.shutdown()
+        except:
+            pass
 
 if __name__ == '__main__':
     main_powerswitch()
