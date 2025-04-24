@@ -191,17 +191,21 @@ class LaunchApp(QMainWindow):
         layout.addWidget(self.list_widget)
 
         button_layout = QHBoxLayout()
-        self.add_button = QPushButton("Launch-Datei +")
+        self.add_button = QPushButton("Launch +")
         self.add_button.clicked.connect(self.add_launch_file)
         button_layout.addWidget(self.add_button)
 
-        self.delete_button = QPushButton("Launch-Datei -")
+        self.delete_button = QPushButton("Launch -")
         self.delete_button.clicked.connect(self.delete_selected)
         button_layout.addWidget(self.delete_button)
 
         self.start_button = QPushButton("Starten")
         self.start_button.clicked.connect(self.start_selected)
         button_layout.addWidget(self.start_button)
+
+        self.start_robocup_button = QPushButton("RCJ")
+        self.start_robocup_button.clicked.connect(self.start_robocup)
+        button_layout.addWidget(self.start_robocup_button)
 
         self.stop_button = QPushButton("Stoppen")
         self.stop_button.clicked.connect(self.stop_all)
@@ -302,6 +306,10 @@ class LaunchApp(QMainWindow):
     def killall_python(self):
         # pgrep -af python
         # Eigene PID abrufen
+
+        self.stop_robocup()
+
+        
         current_pid = os.getpid()
         # Alle Python-Prozesse abrufen (außer sich selbst)
         #processes = subprocess.check_output(["pgrep", "-f", "python"]).decode().split()
@@ -312,6 +320,26 @@ class LaunchApp(QMainWindow):
             if int(pid) != current_pid:
                 print(f"Killing PID {pid}")
                 os.system(f"kill -9 {pid}")
+    
+    def start_robocup(self):
+        """Startet den Robocup-Launch."""
+        # Hier den Robocup-Launch starten
+        # Beispiel: subprocess.Popen(["ros2", "launch", "robocup", "robocup.launch.py"])
+        self.process_robocup = subprocess.Popen(["bash", "/home/robu/work/robocup-ros/launch/robocup.launch.sh"])
+
+
+    def stop_robocup(self):
+        """Stoppt den Robocup-Launch."""
+        if hasattr(self, 'process_robocup'):
+            self.process_robocup.terminate()
+            try:
+                self.process_robocup.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                print("Beendet nicht sauber, wird nun hart beendet")
+                self.process_robocup.kill()  # entspricht `kill -9` (sofortiger Abbruch)
+            del self.process_robocup
+        else:
+            print("Robocup-Launch ist nicht gestartet.")
 
     def set_autostart(self):
         """Schaltet den Autostart-Status um."""
