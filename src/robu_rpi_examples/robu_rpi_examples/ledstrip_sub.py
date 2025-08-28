@@ -12,8 +12,7 @@ import rclpy.timer
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 from std_msgs.msg import String, UInt8MultiArray
-
-from robu_rpi_examples.rpi.utils import is_raspberry_pi
+from robuboard.rpi.utils import is_raspberry_pi
 from rpi_ws281x import ws, Adafruit_NeoPixel, Color
 
 #https://github.com/rpi-ws281x/rpi-ws281x-python
