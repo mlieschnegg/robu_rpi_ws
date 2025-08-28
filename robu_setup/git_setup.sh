@@ -3,6 +3,8 @@ export ROBU_RPI_WS=~/work/.robu
 
 mkdir -p ~/work
 
+sudo apt install -y git gh
+
 if [[ ! -d "$ROBU_RPI_WS" ]]; then
     git clone https://github.com/mlieschnegg/robu_rpi_ws ~/work/.robu
 fi
