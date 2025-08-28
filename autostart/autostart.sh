@@ -2,13 +2,13 @@
 #set -e #Beendet das Skript bei Fehlern
 
 export DISPLAY=:0
-export ROBU_RPI_WS=/home/robu/work/.robu
-#export ROBU_RPI_WS=/home/robu/work/ROBU/robu_rpi_ws
+export ROBU_RPI_WS=$HOME/work/.robu
+#export ROBU_RPI_WS=$HOME/work/ROBU/robu_rpi_ws
 
-DIR_MICRO_ROS="/home/robu/work/microros_ws"
-DIR_ROBOCUP_ROS="/home/robu/work/robocup-ros"
-DIR_ROBOCUP_TEENSY="/home/robu/work/robocup-teensy"
-DIR_ROBOCUP_GUI="/home/robu/work/robocup-gui"
+DIR_MICRO_ROS="$HOME/work/microros_ws"
+DIR_ROBOCUP_ROS="$HOME/work/robocup-ros"
+DIR_ROBOCUP_TEENSY="$HOME/work/robocup-teensy"
+DIR_ROBOCUP_GUI="$HOME/work/robocup-gui"
 
 #display is always on
 xset s off
@@ -21,13 +21,17 @@ if ! (git pull | grep -q 'Already up to date.'); then
     colcon build
 fi
 
+if [[ ! -d "$ROBU_RPI_WS/install" ]]; then
+    colcon build
+fi
+
 # Prüfen, ob der Prozess "screen" existiert
 #if pgrep screen > /dev/null; then
 #    killall screen
 #fi
 #killall -9 /usr/bin/python3
 
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 source $ROBU_RPI_WS/install/setup.bash
 
 if [[ -d "$DIR_MICRO_ROS" ]]; then
