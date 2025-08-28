@@ -21,3 +21,7 @@ X-KDE-Autostart-enabled=true
 X-GNOME-Autostart-enabled=true
 StartupNotify=false
 EOF
+
+if ! grep -q "source $HOME/work/.robu/install/setup.bash" ~/.bashrc; then
+    echo "source $HOME/work/.robu/install/setup.bash" >> ~/.bashrc
+fi

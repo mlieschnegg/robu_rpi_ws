@@ -16,14 +16,14 @@ sudo sed -i -E 's/^XKBLAYOUT="[^"]*"/XKBLAYOUT="de"/' /etc/default/keyboard
 sudo apt install -y git terminator screen htop kde-plasma-desktop
 sudo apt install -y ncdu blender
 
-
 . samba_setup.sh
 
 sudo apt install -y python3-pip
 sudo apt install -y python3-opencv
 #pip install rpi_ws281x --break-system-packages
 #pip install opencv-python --break-system-packages
-#pip install "numpy<2.0"  --break-system-packages
+#Bekomme sonst Fehlermeldung beim ros2-jazzy-tf-transformations Paket -> wahrscheinlich geht dann opencv nicht :-(
+pip install "numpy<2.0"  --break-system-packages
 
 # Install snap packages
 sudo snap install code --classic

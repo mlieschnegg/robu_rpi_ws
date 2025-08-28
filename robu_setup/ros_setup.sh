@@ -39,3 +39,4 @@ sudo apt install -y ros-${ROS_DISTRO}-dynamixel-sdk
 sudo apt install -y ros-${ROS_DISTRO}-dynamixel-interfaces
 sudo apt install -y python3-colcon-clean
 sudo apt install -y ros-${ROS_DISTRO}-moveit
+sudo apt install -y ros-${ROS_DISTRO}-tf-transformations
