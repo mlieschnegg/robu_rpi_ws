@@ -4,11 +4,9 @@
 
 echo "Starting Setup for ROBU"
 
-
-mkdir -p ~\work
+mkdir -p ~/work
 
 sudo sed -i -E 's/^XKBLAYOUT="[^"]*"/XKBLAYOUT="de"/' /etc/default/keyboard
-
 
 . ros_setup.sh
 
@@ -20,10 +18,13 @@ sudo apt install -y ncdu blender
 
 sudo apt install -y python3-pip
 sudo apt install -y python3-opencv
+
+#Gehe nur am Raspberry, wir können jedoch die Autovervollständigung für eine Entwicklung am PC nutzen
 #pip install rpi_ws281x --break-system-packages
+#Erst nach dieser Installation geht die Autovervollständiguung in VSC
 #pip install opencv-python --break-system-packages
 #Bekomme sonst Fehlermeldung beim ros2-jazzy-tf-transformations Paket -> wahrscheinlich geht dann opencv nicht :-(
-pip install "numpy<2.0"  --break-system-packages
+#pip install "numpy<2.0"  --break-system-packages
 
 # Install snap packages
 sudo snap install code --classic

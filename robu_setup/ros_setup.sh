@@ -1,3 +1,5 @@
+echo "Installation von ROS"
+
 # Update and upgrade system
 sudo apt update && sudo apt upgrade -y
 
@@ -22,11 +24,27 @@ sudo apt update && sudo apt install ros-dev-tools
 sudo apt update
 sudo apt upgrade
 
-sudo apt install -y ros-dev-tools ros-jazzy-desktop-full
+sudo apt install -y ros-dev-tools
 
-# Add ROS 2 to bashrc for persistence
-if ! grep -q "source /opt/ros/jazzy/setup.bash" ~/.bashrc; then
-    echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+# Aktuelle Ubuntu-Version abfragen
+ubuntu_version=$(lsb_release -rs)
+# Verzweigung basierend auf der Version
+if [ "$ubuntu_version" = "22.04" ]; then
+    echo "Ihre Ubuntu-Version ist: $ubuntu_version, es wird die ROS-Distro Humble installiert!"
+    sudo apt install -y ros-humble-desktop-full
+    CMD_TEXT="source /opt/ros/humble/setup.bash"
+    if ! grep -q "$CMD_TEXT" ~/.bashrc; then
+        echo "$CMD_TEXT" >> ~/.bashrc
+    fi
+elif [ "$ubuntu_version" = "24.04" ]; then
+    echo "Ihre Ubuntu-Version ist: $ubuntu_version, es wird die ROS-Distro Jazzy installiert!"
+    sudo apt install -y ros-jazzy-desktop-full
+    CMD_TEXT="source /opt/ros/jazzy/setup.bash"
+    if ! grep -q "$CMD_TEXT" ~/.bashrc; then
+        echo "$CMD_TEXT" >> ~/.bashrc
+    fi
+else
+  echo "Ihre Ubuntu-Version ($ubuntu_version) wird nicht explizit unterstützt oder ist nicht 22.04/24.04."
 fi
 
 source ~/.bashrc
@@ -40,3 +58,9 @@ sudo apt install -y ros-${ROS_DISTRO}-dynamixel-interfaces
 sudo apt install -y python3-colcon-clean
 sudo apt install -y ros-${ROS_DISTRO}-moveit
 sudo apt install -y ros-${ROS_DISTRO}-tf-transformations
+sudo apt install -y ros-${ROS_DISTRO}-cartographer
+sudo apt install -y ros-${ROS_DISTRO}-cartographer-ros
+sudo apt install -y ros-${ROS_DISTRO}-navigation2
+sudo apt install -y ros-${ROS_DISTRO}-nav2-bringup
+
+. turtlebot_setup.sh

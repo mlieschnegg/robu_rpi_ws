@@ -1,3 +1,5 @@
+echo "Samba Freigabe installieren!"
+
 sudo apt install -y samba
 
 FILE='/etc/samba/smb.conf'
