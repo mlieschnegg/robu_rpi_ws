@@ -9,10 +9,12 @@ mkdir -p ~/work
 sudo sed -i -E 's/^XKBLAYOUT="[^"]*"/XKBLAYOUT="de"/' /etc/default/keyboard
 
 . ros_setup.sh
+. microros_setup.sh
 
 # Install additional utilities
 sudo apt install -y git terminator screen htop kde-plasma-desktop
 sudo apt install -y ncdu blender
+sudo snap install gimp
 
 . samba_setup.sh
 

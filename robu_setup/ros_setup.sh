@@ -62,5 +62,6 @@ sudo apt install -y ros-${ROS_DISTRO}-cartographer
 sudo apt install -y ros-${ROS_DISTRO}-cartographer-ros
 sudo apt install -y ros-${ROS_DISTRO}-navigation2
 sudo apt install -y ros-${ROS_DISTRO}-nav2-bringup
+sudo apt install -y ros-${ROS_DISTRO}-rosbridge-server
 
 . turtlebot_setup.sh
