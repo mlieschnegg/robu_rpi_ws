@@ -51,5 +51,5 @@ pip install matplotlib --break-system-packages
 pip install keras --break-system-packages
 pip install scipy --break-system-packages
 pip install scikit-learn --break-system-packages
-
+pip install tensorflow --break-system-packages
 # jupyter lab
