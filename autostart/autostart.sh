@@ -75,4 +75,7 @@ fi
 #go to home directory
 cd
 
-/usr/bin/python3 $ROBU_RPI_WS/autostart/ros_launcher.py
+if /usr/bin/python3 -c "from robuboard.rpi.utils import is_raspberry_pi; print(is_raspberry_pi())" | grep -q "True"; then
+    /usr/bin/python3 $ROBU_RPI_WS/autostart/ros_launcher.py
+fi
+

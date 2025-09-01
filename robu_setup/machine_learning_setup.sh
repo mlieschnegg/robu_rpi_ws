@@ -38,18 +38,18 @@
 # jupyter lab
 
 
-pip install jupyterlab
+pip install jupyterlab --break-system-packages
 
 #pip install notebook
-pip install --upgrade pip
-pip install numpy
-pip install pillow
+pip install --upgrade pip --break-system-packages
+pip install "numpy<2.0"  --break-system-packages
+pip install pillow --break-system-packages
 #pip install opencv-python==4.2.0
-pip install opencv-contrib-python
-pip install pyqt5
-pip install matplotlib
-pip install keras
-pip install scipy
-pip install scikit-learn
+pip install opencv-contrib-python --break-system-packages
+pip install pyqt5 --break-system-packages
+pip install matplotlib --break-system-packages
+pip install keras --break-system-packages
+pip install scipy --break-system-packages
+pip install scikit-learn --break-system-packages
 
 # jupyter lab

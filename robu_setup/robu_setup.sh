@@ -22,11 +22,11 @@ sudo apt install -y python3-pip
 sudo apt install -y python3-opencv
 
 #Gehe nur am Raspberry, wir können jedoch die Autovervollständigung für eine Entwicklung am PC nutzen
-#pip install rpi_ws281x --break-system-packages
+pip install rpi_ws281x --break-system-packages
 #Erst nach dieser Installation geht die Autovervollständiguung in VSC
-#pip install opencv-python --break-system-packages
+pip install opencv-python --break-system-packages
 #Bekomme sonst Fehlermeldung beim ros2-jazzy-tf-transformations Paket -> wahrscheinlich geht dann opencv nicht :-(
-#pip install "numpy<2.0"  --break-system-packages
+pip install "numpy<2.0"  --break-system-packages
 
 # Install snap packages
 sudo snap install code --classic
@@ -83,12 +83,20 @@ echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER
 
 . git_setup.sh
 
+. machine_learning_setup.sh
+
 # TODO
 #sudo hostnamectl set-hostname robu-desktop
 #sudo nano /etc/hosts
 #.colcon ordner kopieren
 #websocke istnallieren
-#git clone https://github.com/mlieschnegg/robu_rpi_ws .robu
 #code snippets einrichten...
+
+# Symlinks für colcon erstellen
+mkdir -p ~/.colcon
+ln -sf ~/work/.robu/config/.colcon/defaults.yaml ~/.colcon/defaults.yaml
+
+#Symlinks für VSC erstellen (Code Snippets)
+. link_vsc_snippets
 
 echo "Setup completed successfully!"
