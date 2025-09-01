@@ -1,0 +1,4 @@
+build:
+  symlink-install: true
+  cmake-args:
+    - -DPYTHON_INSTALL_DIR=lib/python3.10/site-packages
