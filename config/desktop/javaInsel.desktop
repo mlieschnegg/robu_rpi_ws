@@ -1,0 +1,8 @@
+ [Desktop Entry]
+Version=1.0
+Name=Java Insel
+Comment=Öffnet die HTML-Seite im Browser
+Exec=xdg-open ~/work/java/javaInsel/index.html
+Icon=/home/robu/work/java/javaInsel/common/9783836218023.jpg
+Terminal=false
+Type=Application

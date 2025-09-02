@@ -39,8 +39,7 @@
 
 
 pip install jupyterlab --break-system-packages
-
-#pip install notebook
+#pip install notebook --break-system-packages
 pip install --upgrade pip --break-system-packages
 pip install "numpy<2.0"  --break-system-packages
 pip install pillow --break-system-packages

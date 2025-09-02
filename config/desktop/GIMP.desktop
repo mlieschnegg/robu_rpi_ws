@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=GIMP
+Exec=gimp
+Icon=gimp
+Terminal=false
+Categories=Development;Graphics;IDE;Utility;
+StartupNotify=true

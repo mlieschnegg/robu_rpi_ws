@@ -15,6 +15,12 @@ sudo sed -i -E 's/^XKBLAYOUT="[^"]*"/XKBLAYOUT="de"/' /etc/default/keyboard
 sudo apt install -y git terminator screen htop kde-plasma-desktop
 sudo apt install -y ncdu blender
 sudo snap install gimp
+sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
+sudo apt update
+sudo apt install --install-recommends kicad
+
+#compiler for python
+/bin/bash -c "$(curl -fsSL https://exaloop.io/install.sh)"
 
 . samba_setup.sh
 
@@ -99,4 +105,6 @@ ln -sf ~/work/.robu/config/.colcon/defaults.yaml ~/.colcon/defaults.yaml
 #Symlinks für VSC erstellen (Code Snippets)
 . link_vsc_snippets
 
+#Desktop Icons kopieren
+cp -r ~/work/.robu/config/desktop/*.* $HOME/Desktop
 echo "Setup completed successfully!"
