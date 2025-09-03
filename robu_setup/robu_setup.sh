@@ -94,9 +94,9 @@ echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER
 # TODO
 #sudo hostnamectl set-hostname robu-desktop
 #sudo nano /etc/hosts
-#.colcon ordner kopieren
-#websocke istnallieren
-#code snippets einrichten...
+
+#Benutzer zur Gruppe dialout hinzufügen (z.B. serielle Schnittstelle)
+sudo usermod -aG dialout $USER
 
 # Symlinks für colcon erstellen
 mkdir -p ~/.colcon
