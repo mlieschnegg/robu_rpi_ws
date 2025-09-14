@@ -64,5 +64,6 @@ sudo apt install -y ros-${ROS_DISTRO}-navigation2
 sudo apt install -y ros-${ROS_DISTRO}-nav2-bringup
 sudo apt install -y ros-${ROS_DISTRO}-rosbridge-server
 sudo apt install -y ros-${ROS_DISTRO}-joint-state-publisher-gui
+sudo apt install -y ros-${ROS_DISTRO}-twist-mux
 
 . turtlebot_setup.sh
