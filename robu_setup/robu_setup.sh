@@ -26,6 +26,7 @@ sudo apt install --install-recommends kicad
 
 sudo apt install -y python3-pip
 sudo apt install -y python3-opencv
+sudo apt install -y openssh-server
 
 #Gehe nur am Raspberry, wir können jedoch die Autovervollständigung für eine Entwicklung am PC nutzen
 pip install rpi_ws281x --break-system-packages
