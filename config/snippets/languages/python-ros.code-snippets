@@ -1,6 +1,6 @@
 {
     "ROS2: Node-Klasse mit main()-Block und Fehlerbehandlung": {
-        "prefix": "ros2_main_class",
+        "prefix": "ros_main_class",
         "body": [
         "from rclpy.node import Node",
         "import rclpy",
@@ -42,7 +42,7 @@
     },
 
     "ROS2 Node Import Template":{
-        "prefix": "nit",
+        "prefix": "ros_node_import",
         "body": [
             "import rclpy",
             "from rclpy.node import Node",
@@ -54,73 +54,71 @@
 
     },
 
-    // 🧩 Beispiel für eine Launch-Datei mit einem Node
-    "ROS2 Launch File Template":{
-        "prefix": "ros_launch_file_node",
-        "body":["from launch import LaunchDescription",
-                "from launch_ros.actions import Node",
-                "from launch.actions import DeclareLaunchArgument",
-                "from launch.substitutions import LaunchConfiguration",
-                "from ament_index_python.packages import get_package_share_directory",
-                "",
-                "def generate_launch_description():",
-                "    node = Node(",
-                "        package='${1:package_name}',",
-                "        executable='${2:executable_name}',",
-                "        name='${3:node_name}',",
-                "        output='screen',",
-                "        parameters=[]",
-                "    )",
-                "",
-                "    ld = LaunchDescription()",
-                "    ld.add_action(node)",
-                "    return ld",
+    "ROS2 Publisher Template": {
+        "prefix": "ros_pub",
+        "body": [
+        "self._pub_${1:arg_name} = self.create_publisher(${2:arg_msg_type}, '/${1:arg_name}', 10)"
         ],
-        "description": "RO2 Template für eine Python-Launch-Datei"
+        "description": "ROS2 Publisher mit _pub Prefix und Topic = /arg_name"
     },
 
-            
-    // 🔀 Launch-Datei mit Argumenten (komplettes Beispiel)
-    "ROS2 Launch: Komplette Datei mit Argument": {
-        "prefix": "ros_launch_file_node_arg",
+
+    "ROS2 Subscriber Template": {
+        "prefix": "ros2sub",
         "body": [
-        "from launch import LaunchDescription",
-        "from launch.actions import DeclareLaunchArgument",
-        "from launch.substitutions import LaunchConfiguration",
-        "from launch_ros.actions import Node",
-        "from ament_index_python.packages import get_package_share_directory",
-        "",
-        "def generate_launch_description():",
-        "    return LaunchDescription([",
-        "        DeclareLaunchArgument(",
-        "            'robot_name',",
-        "            default_value='robby',",
-        "            description='Name des Roboters'",
-        "        ),",
-        "",
-        "        Node(",
-        "            package='mein_paket',",
-        "            executable='mein_knoten',",
-        "            name=LaunchConfiguration('robot_name'),",
-        "            parameters=[{",
-        "                'robot_name': LaunchConfiguration('robot_name')",
-        "            }],",
-        "            output='screen'",
-        "        )",
-        "    ])"
+        "self._sub_${1:arg_name} = self.create_subscription(",
+        "    ${2:arg_msg_type},",
+        "    '/${1:arg_name}',",
+        "    self._sub_${1:arg_name}_cb,",
+        "    10",
+        ")"
         ],
-        "description": "ROS2 Launch-Datei mit Launch-Argumenten"
+        "description": "ROS2 Subscriber mit _sub Prefix, Topic = /arg_name und Callback"
+    },
+
+           
+    // 🔀 Launch-Datei mit Argumenten (komplettes Beispiel)
+    "ROS2 Launch Dummy": {
+        "prefix": "ros_launch_file",
+        "body": [
+            "from launch import LaunchDescription",
+            "from launch.actions import DeclareLaunchArgument",
+            "from launch.substitutions import LaunchConfiguration",
+            "from launch_ros.actions import Node",
+            "from ament_index_python.packages import get_package_share_directory",
+            "",
+            "def generate_launch_description():",
+            "    arg_value = DeclareLaunchArgument('dummy_arg', default_value='42', description='Dummy Argument')",
+            "",
+            "    node = Node(",
+            "        package='demo_pkg',",
+            "        executable='demo_node',",
+            "        name='demo_node',",
+            "        parameters=[{",
+            "            'dummy_param': LaunchConfiguration('dummy_arg')",
+            "        }]",
+            "    )",
+            "",
+            "    ld = LaunchDescription()",
+            "    ld.add_action(arg_value)",
+            "    ld.add_action(node)",
+            "    return ld"
+        ],
+        "description": "Minimaler ROS2 Launch mit einem Argument und einem Node"
     },
 
     // 📦 Basis-Importe für ROS2-Launch-Dateien
     "ROS2 Launch: Import Statements": {
-        "prefix": "ros_launch_imports",
+        "prefix": "ros_launch_file_empty",
         "body": [
-        "from launch import LaunchDescription",
-        "from launch.actions import DeclareLaunchArgument",
-        "from launch.substitutions import LaunchConfiguration",
-        "from launch_ros.actions import Node",
-        "from ament_index_python.packages import get_package_share_directory",
+            "from launch import LaunchDescription",
+            "from launch.actions import DeclareLaunchArgument",
+            "from launch.substitutions import LaunchConfiguration",
+            "from launch_ros.actions import Node",
+            "from ament_index_python.packages import get_package_share_directory",
+            "",
+            "def generate_launch_description():",
+            "    return ld"
         ],
         "description": "Importe für ROS2-Launch-Dateien"
     },
@@ -138,37 +136,6 @@
         "description": "Deklariert ein Launch-Argument"
     },
     
-    // 🔧 Zugriff auf LaunchConfiguration Variable
-    "ROS2 Launch: LaunchConfiguration Variable": {
-        "prefix": "ros_launch_config",
-        "body": [
-        "LaunchConfiguration('${1:arg_name}')"
-        ],
-        "description": "Zugriff auf ein Launch-Argument via LaunchConfiguration"
-    },
-    
-    // 🧩 Parameter über LaunchConfiguration setzen
-    "ROS2 Launch: Parameter via LaunchConfiguration": {
-        "prefix": "ros_param_from_arg",
-        "body": [
-            "${1:param_name} = LaunchConfiguration('${2:arg_name}')"
-        ],
-        "description": "Ein Parameter, der über ein Launch-Argument gesetzt wird"
-    },
-    
-    // 🧱 Einfache Node-Deklaration
-    "ROS2 Launch: Node": {
-        "prefix": "ros_launch_node",
-        "body": [
-        "Node(",
-        "    package='${1:mein_paket}',",
-        "    executable='${2:mein_knoten}',",
-        "    name='${3:knoten_name}',",
-        "    output='screen'",
-        ")"
-        ],
-        "description": "ROS2 Node mit Name und Executable"
-    },
     
     // ⚙️ Node mit Parametern
     "ROS2 Launch: Node mit Parametern": {
@@ -185,29 +152,6 @@
         ")"
         ],
         "description": "ROS2 Node mit Parametern"
-    },
-    
-    // 🧰 Kombiniert Argument + Node + LaunchConfiguration
-    "ROS2 Launch: Argument + Node": {
-        "prefix": "ros_launch_node_arg",
-        "body": [
-        "DeclareLaunchArgument(",
-        "    '${1:arg_name}',",
-        "    default_value='${2:default}',",
-        "    description='${3:Beschreibung}'",
-        "),",
-        "",
-        "Node(",
-        "    package='${4:mein_paket}',",
-        "    executable='${5:mein_knoten}',",
-        "    name=LaunchConfiguration('${1}'),",
-        "    parameters=[{",
-        "        '${1}': LaunchConfiguration('${1}')",
-        "    }],",
-        "    output='screen'",
-        ")"
-        ],
-        "description": "Deklariert ein Launch-Argument und verwendet es direkt im Node"
-    },     
+    },   
       
 }
