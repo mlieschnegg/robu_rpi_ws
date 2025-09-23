@@ -1,5 +1,7 @@
 echo "Installation von microros"
 
+source "/pfad/zu/rpi_detect.sh"
+
 # https://micro.ros.org/docs/tutorials/core/teensy_with_arduino/
 
 # Source the ROS 2 installation
@@ -43,3 +45,23 @@ source ~/.bashrc
 curl https://www.pjrc.com/teensy/00-teensy.rules -O
 sudo cp 00-teensy.rules /etc/udev/rules.d/
 rm 00-teensy.rules
+
+if is_raspberry_pi; then
+    curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
+    python3 get-platformio.py
+
+    export PATH=$PATH:$HOME/.local/bin
+    ln -s ~/.platformio/penv/bin/platformio ~/.local/bin/platformio
+    ln -s ~/.platformio/penv/bin/pio ~/.local/bin/pio
+    ln -s ~/.platformio/penv/bin/piodebuggdb ~/.local/bin/piodebuggdb
+
+    sudo apt-get install libusb-dev
+
+    cd ~/work
+    git clone https://github.com/PaulStoffregen/teensy_loader_cli
+    cd teensy_loader_cli
+    make
+    sudo cp teensy_loader_cli /usr/local/bin/
+    cd ..
+    sudo rm -r teensy_loader_cli/
+fi

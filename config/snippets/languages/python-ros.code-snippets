@@ -64,7 +64,7 @@
 
 
     "ROS2 Subscriber Template": {
-        "prefix": "ros2sub",
+        "prefix": "ros_sub",
         "body": [
         "self._sub_${1:arg_name} = self.create_subscription(",
         "    ${2:arg_msg_type},",

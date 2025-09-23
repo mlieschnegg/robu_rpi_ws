@@ -1,5 +1,8 @@
 echo "Installation von ROS"
 
+source "/pfad/zu/rpi_detect.sh"
+
+cd ~/work/ws_turtlebot/
 # Update and upgrade system
 sudo apt update && sudo apt upgrade -y
 
@@ -31,14 +34,26 @@ ubuntu_version=$(lsb_release -rs)
 # Verzweigung basierend auf der Version
 if [ "$ubuntu_version" = "22.04" ]; then
     echo "Ihre Ubuntu-Version ist: $ubuntu_version, es wird die ROS-Distro Humble installiert!"
-    sudo apt install -y ros-humble-desktop-full
+    
+    if is_raspberry_pi; then
+        sudo apt install -y ros-humble-desktop
+    else
+        sudo apt install -y ros-humble-desktop-full
+    fi
+
     CMD_TEXT="source /opt/ros/humble/setup.bash"
     if ! grep -q "$CMD_TEXT" ~/.bashrc; then
         echo "$CMD_TEXT" >> ~/.bashrc
     fi
 elif [ "$ubuntu_version" = "24.04" ]; then
     echo "Ihre Ubuntu-Version ist: $ubuntu_version, es wird die ROS-Distro Jazzy installiert!"
-    sudo apt install -y ros-jazzy-desktop-full
+    
+    if is_raspberry_pi; then
+        sudo apt install -y ros-jazzy-desktop
+    else
+        sudo apt install -y ros-jazzy-desktop-full
+    fi
+
     CMD_TEXT="source /opt/ros/jazzy/setup.bash"
     if ! grep -q "$CMD_TEXT" ~/.bashrc; then
         echo "$CMD_TEXT" >> ~/.bashrc
@@ -65,5 +80,11 @@ sudo apt install -y ros-${ROS_DISTRO}-nav2-bringup
 sudo apt install -y ros-${ROS_DISTRO}-rosbridge-server
 sudo apt install -y ros-${ROS_DISTRO}-joint-state-publisher-gui
 sudo apt install -y ros-${ROS_DISTRO}-twist-mux
+sudo apt install -y ros-${ROS_DISTRO}-rqt-image-view
+
+if ! is_raspberry_pi; then #muss für den raspberry extra gebaut werden!!! -> rpi_camera_setup.sh
+    sudo apt install -y ros-${ROS_DISTRO}-camera-ros
+fi
+
 
 . turtlebot_setup.sh

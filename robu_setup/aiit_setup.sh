@@ -32,3 +32,7 @@ rm "$DOWNLOAD_FILE"
 
 mkdir -p ~/java/uebungen/prj
 mkdir -p ~/java/uebungen/src
+
+
+#TODO: copy code templates (org-netbeans-modules-editor-settings-CustomCodeTemplates.xml)
+# to: /home/robu/snap/netbeans/current/config/Editors/text/x-java/CodeTemplates/
