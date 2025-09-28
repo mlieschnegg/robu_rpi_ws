@@ -153,5 +153,21 @@
         ],
         "description": "ROS2 Node mit Parametern"
     },   
+
+    "Include Launch Description": {
+        "prefix": "ros_launch_ld",
+        "body": [
+        "ld_${1:name} = IncludeLaunchDescription(",
+        "    PythonLaunchDescriptionSource([",
+        "        os.path.join(",
+        "            get_package_share_directory(\"${2:package_name}\"),",
+        "            \"launch\",",
+        "            \"${3:launch_file}.launch.py\"",
+        "        )",
+        "    ])",
+        ")"
+        ],
+        "description": "Include a launch description with placeholders for package and launch file"
+    }
       
 }
