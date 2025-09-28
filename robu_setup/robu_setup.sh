@@ -137,11 +137,12 @@ if is_raspberry_pi; then
     sudo chmod a+rw /dev/ttyUSB0
     sudo chmod a+rw /dev/mem
 
-    #pishrink installieren
-    cd ~/work/
-    wget https://raw.githubusercontent.com/Drewsif/PiShrink/master/pishrink.sh
-    sudo chmod +x pishrink.sh
-    sudo mv pishrink.sh /usr/local/bin
-
 fi
+
+#pishrink installieren
+cd ~/work/
+wget https://raw.githubusercontent.com/Drewsif/PiShrink/master/pishrink.sh
+sudo chmod +x pishrink.sh
+sudo mv pishrink.sh /usr/local/bin
+
 echo "Setup completed successfully!"
