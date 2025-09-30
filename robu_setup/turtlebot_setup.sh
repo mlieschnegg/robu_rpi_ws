@@ -1,6 +1,6 @@
 echo "Installation der Simulations-Unterstützung für den Turtlebot 3"
 
-source "/pfad/zu/rpi_detect.sh"
+source "rpi_detect.sh"
 
 ubuntu_version=$(lsb_release -rs)
 if [ "$ubuntu_version" = "22.04" ]; then
@@ -96,7 +96,7 @@ if ! grep -q "$CMD_TEXT" ~/.bashrc; then
     echo "$CMD_TEXT" >> ~/.bashrc
 fi
 
-CMD_TEXT="RMW_IMPLEMENTATION=rmw_fastrtps_cpp"
+CMD_TEXT="export RMW_IMPLEMENTATION=rmw_fastrtps_cpp"
 if ! grep -q "$CMD_TEXT" ~/.bashrc; then
     echo "$CMD_TEXT" >> ~/.bashrc
 fi

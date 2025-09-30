@@ -4,7 +4,7 @@
 
 echo "Starting Setup for ROBU"
 
-source "/pfad/zu/rpi_detect.sh"
+source "rpi_detect.sh"
 
 mkdir -p ~/work
 

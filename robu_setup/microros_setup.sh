@@ -1,6 +1,6 @@
 echo "Installation von microros"
 
-source "/pfad/zu/rpi_detect.sh"
+source "rpi_detect.sh"
 
 # https://micro.ros.org/docs/tutorials/core/teensy_with_arduino/
 

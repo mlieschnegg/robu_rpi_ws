@@ -1,5 +1,5 @@
 #!/bin/bash
-source "/pfad/zu/rpi_detect.sh"
+source "rpi_detect.sh"
 
 if is_raspberry_pi; then
 

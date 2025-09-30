@@ -1,6 +1,6 @@
 echo "Installation von ROS"
 
-source "/pfad/zu/rpi_detect.sh"
+source "rpi_detect.sh"
 
 cd ~/work/ws_turtlebot/
 # Update and upgrade system
