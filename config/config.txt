@@ -40,6 +40,12 @@ dtoverlay=dwc2
 # Enable Camera on CSI0
 dtoverlay=imx219,cam0
 
+#Aktiviert die Displayausgabe auch wenn keine Monitor angeschlossen wurde,
+#Wird das nicht gemacht, macht Ubuntu nach dem Start kein Autologin (War ein Problem beim CandyBot)
+hdmi_force_hotplug=1
+#hdmi_group=2
+#hdmi_mode=82
+
 [pi4]
 max_framebuffers=2
 arm_boost=1

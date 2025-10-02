@@ -116,6 +116,14 @@ echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER
 mkdir -p ~/.colcon
 ln -sf ~/work/.robu/config/.colcon/defaults.yaml ~/.colcon/defaults.yaml
 
+
+#Automatischen Login nach dem Booten bei der Desktop-Version aktivieren
+# TODO
+# sudo nano /etc/gdm3/custom.conf
+# [daemon]
+# AutomaticLoginEnable=true
+# AutomaticLogin=dein_benutzername
+
 #Benutzer zur Gruppe dialout hinzufügen (z.B. serielle Schnittstelle)
 sudo adduser $USER dialout
 sudo adduser $USER video
