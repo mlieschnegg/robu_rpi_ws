@@ -59,7 +59,7 @@ fi
 # PC-Only
 #############################################################
 if ! is_raspberry_pi; then
-    sudo apt install -y blender kde-plasma-desktop
+#    sudo apt install -y blender kde-plasma-desktop
     sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
     sudo apt install --install-recommends kicad
 

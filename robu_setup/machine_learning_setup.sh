@@ -38,7 +38,7 @@ source "rpi_detect.sh"
  
 # jupyter lab
 
-if is_raspberry_pi; then
+if ! is_raspberry_pi; then
     pip install jupyterlab --break-system-packages
     #pip install notebook --break-system-packages
     pip install --upgrade pip --break-system-packages
