@@ -223,6 +223,15 @@ class Dynamixel:
             raise ConnectionError(
                 f"dynamixel error for motor {motor_id}: {self.packetHandler.getTxRxResult(dxl_error)}")
 
+    def reboot(self, motor_id: int):
+        self.packetHandler.reboot(self.portHandler, motor_id)
+        
+    def read_hardware_error_status(self, motor_id: int):
+        value, dxl_comm_result, dxl_error = self.packetHandler.read1ByteTxRx(self.portHandler,
+                                                                                     motor_id,
+                                                                                     ReadAttribute.HARDWARE_ERROR_STATUS.value)
+        return value
+
     def set_operating_mode(self, motor_id: int, operating_mode: OperatingMode):
         dxl_comm_result, dxl_error = self.packetHandler.write2ByteTxRx(self.portHandler, motor_id,
                                                                        self.OPERATING_MODE_ADDR, operating_mode.value)
