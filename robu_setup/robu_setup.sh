@@ -28,11 +28,12 @@ sudo systemctl enable --now ssh
 
 # Install additional utilities
 sudo apt install -y git terminator screen htop 
+sudo apt install -y rpi-imager
 sudo apt install -y ncdu 
 sudo apt install -y python3-pip
 sudo apt install -y python3-opencv
-sudo apt install v4l-utils
-sudo apt-get install p7zip-full -y
+sudo apt install -y v4l-utils
+sudo apt-get install -y p7zip-full
 #sudo apt install libcamera-apps
 
 #compiler for python

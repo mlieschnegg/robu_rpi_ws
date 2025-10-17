@@ -1,3 +1,4 @@
+#!/bin/bash
 
 source "rpi_detect.sh"
 

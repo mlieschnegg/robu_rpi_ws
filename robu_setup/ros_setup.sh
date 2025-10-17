@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "Installation von ROS"
 
 source "rpi_detect.sh"

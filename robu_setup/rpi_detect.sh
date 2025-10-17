@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Datei: rpi_detect.sh
 # Nutzung: source ./rpi_detect.sh
 

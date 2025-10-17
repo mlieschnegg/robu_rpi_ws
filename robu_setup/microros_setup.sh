@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "Installation von microros"
 
 source "rpi_detect.sh"

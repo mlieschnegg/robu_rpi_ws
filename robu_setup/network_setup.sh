@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Alle Wifi-Netzwerke löschen
 nmcli connection delete robotic RoboCup ROBU S-MISC 2>/dev/null
 

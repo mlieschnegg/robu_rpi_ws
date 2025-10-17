@@ -86,7 +86,7 @@ def start_bootloader_teensy():
         print("starting bootloader on teensy...")
         # argument -b is not working
         # subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-b"])
-        firmware_path:str="/home/robu/work/robocup-teensy/.pio/build/teensymm/firmware.hex"
+        firmware_path:str="/home/robu/work/robocup/robocup-teensy/.pio/build/teensymm/firmware.hex"
         subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", firmware_path],
                        stdout=subprocess.DEVNULL,  # Standardausgabe unterdrücken
                         stderr=subprocess.DEVNULL)  # Fehlerausgabe unterdrücken
@@ -95,7 +95,7 @@ def start_bootloader_teensy():
     else:
         print("invalid state of teensy! Press boot switch!")
 
-def upload_firmware_teensy(firmware_path:str="/home/robu/work/robocup-teensy/.pio/build/teensymm/firmware.hex"):
+def upload_firmware_teensy(firmware_path:str="/home/robu/work/robocup/robocup-teensy/.pio/build/teensymm/firmware.hex"):
     import subprocess
     init_gpios()
     enable_5v_supply()
@@ -103,7 +103,7 @@ def upload_firmware_teensy(firmware_path:str="/home/robu/work/robocup-teensy/.pi
     subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-w", firmware_path])
 
 
-def build_firmware_teensy(firmware_path:str="/home/robu/work/robocup-teensy/"):
+def build_firmware_teensy(firmware_path:str="/home/robu/work/robocup/robocup-teensy/"):
     import subprocess
     init_gpios()
     enable_5v_supply()

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # HA
 
 mkdir -p ~/work/java

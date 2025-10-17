@@ -6,9 +6,9 @@ export ROBU_RPI_WS=$HOME/work/.robu
 #export ROBU_RPI_WS=$HOME/work/ROBU/robu_rpi_ws
 
 DIR_MICRO_ROS="$HOME/work/microros_ws"
-DIR_ROBOCUP_ROS="$HOME/work/robocup-ros"
-DIR_ROBOCUP_TEENSY="$HOME/work/robocup-teensy"
-DIR_ROBOCUP_GUI="$HOME/work/robocup-gui"
+DIR_ROBOCUP_ROS="$HOME/work/robocup/robocup-ros"
+DIR_ROBOCUP_TEENSY="$HOME/work/robocup/robocup-teensy"
+DIR_ROBOCUP_GUI="$HOME/work/robocup/robocup-gui"
 
 #display is always on
 xset s off

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
 # Quelle (Repo) und Ziel (VS Code Snippet-Ordner)

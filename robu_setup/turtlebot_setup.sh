@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "Installation der Simulations-Unterstützung für den Turtlebot 3"
 
 source "rpi_detect.sh"

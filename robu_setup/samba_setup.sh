@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "Samba Freigabe installieren!"
 
 sudo apt install -y samba
