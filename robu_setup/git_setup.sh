@@ -77,6 +77,7 @@ pio run
 
 # # Rust Setup - https://github.com/ros2-rust/ros2_rust
 # sudo apt install -y git libclang-dev python3-pip python3-vcstool
+# sudo apt install cargo
 # pip install git+https://github.com/colcon/colcon-cargo.git
 # pip install git+https://github.com/colcon/colcon-ros-cargo.git
 
