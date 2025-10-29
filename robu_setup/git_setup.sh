@@ -84,7 +84,7 @@ pio run
 # rm -rf src/ros2_rust
 # mkdir -p src
 # git clone https://github.com/ros2-rust/ros2_rust.git src/ros2_rust
-# vcs import src < src/ros2_rust/ros2_rust_${ROS_DISTRO}/.repos
+# vcs import src < src/ros2_rust/ros2_rust_${ROS_DISTRO}.repos
 # . /opt/ros/${ROS_DISTRO}/setup.sh
 # colcon build
 
