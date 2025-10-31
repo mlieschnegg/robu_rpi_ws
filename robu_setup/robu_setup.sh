@@ -2,7 +2,7 @@
 
 #set -e
 
-echo "Starting Setup for ROBU"
+echo "Starting Setup for RpackagesOBU"
 
 source "rpi_detect.sh"
 
@@ -43,7 +43,7 @@ sudo apt-get install -y p7zip-full
 # pip
 ############################################################
 #Gehe nur am Raspberry, wir können jedoch die Autovervollständigung für eine Entwicklung am PC nutzen
-pip install rpi_ws281x --break-system-packages
+pip install rpi_ws281x --break-system-
 #Erst nach dieser Installation geht die Autovervollständiguung in VSC
 pip install opencv-python --break-system-packages
 #Bekomme sonst Fehlermeldung beim ros2-jazzy-tf-transformations Paket -> wahrscheinlich geht dann opencv nicht :-(

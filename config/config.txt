@@ -37,9 +37,6 @@ dtoverlay=vc4-kms-dsi-7inch
 # Config settings specific to arm64
 dtoverlay=dwc2
 
-# Enable Camera on CSI0
-dtoverlay=imx219,cam0
-
 #Aktiviert die Displayausgabe auch wenn keine Monitor angeschlossen wurde,
 #Wird das nicht gemacht, macht Ubuntu nach dem Start kein Autologin (War ein Problem beim CandyBot)
 hdmi_force_hotplug=1
@@ -49,6 +46,9 @@ hdmi_force_hotplug=1
 [pi4]
 max_framebuffers=2
 arm_boost=1
+
+#dtoverlay=imx219,cam0
+dtoverlay=ov5647,cam0
 
 [pi3+]
 # Use a smaller contiguous memory area, specifically on the 3A+ to avoid an
@@ -66,6 +66,10 @@ dtoverlay=vc4-kms-v3d,cma-128
 # such a board)
 dtoverlay=dwc2,dr_mode=host
 
+camera_auto_detect=0
+dtoverlay=ov5647,cam0
+dtoverlay=imx708,cam1
+
 # enable uart for dynamixel motors on robubaord
 dtoverlay=uart3
 
@@ -76,3 +80,14 @@ dtoverlay=uart3
 # alternative you can disable bluetooth if you use the uart0 for the lidar
 # use a bluetooth dongel for a stable connection
 #dtoverlay=disable-bt
+
+[cm5]
+dtoverlay=dwc2,dr_mode=host
+dtparam=i2c_csi_dsi0=on
+dtparam=i2c_csi_dsi1=on
+camera_auto_detect=0
+dtoverlay=ov5647,cam1
+dtoverlay=imx708,cam0
+
+dtoverlay=uart3
+

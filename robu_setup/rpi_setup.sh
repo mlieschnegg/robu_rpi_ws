@@ -9,6 +9,33 @@ if ! is_raspberry_pi; then
     exit 1
 fi
 
+#optional: Install wiringpi for GPIO control
+#sudo apt install wiringpi
+
+sudo apt install rpi.gpio-common
+
+#Benutzer zur Gruppe dialout hinzufügen (z.B. serielle Schnittstelle)
+sudo adduser $USER dialout
+sudo adduser $USER video
+sudo adduser $USER kmem
+
+#sudo adduser $USER gpio -> gibt es eventuell nicht, Gruppe erstellen plus udev rule hinzufügen
+sudo chown root:$USER /dev/gpiomem
+
+#Zugriffsrechte hinzufügen (gehen nach dem Neustart verloren)
+sudo chmod a+rw /dev/ttyACM0
+sudo chmod a+rw /dev/gpiomem
+sudo chmod a+rw /dev/i2c-1
+sudo chmod a+rw /dev/video0
+sudo chmod a+rw /dev/ttyUSB0
+sudo chmod a+rw /dev/mem
+sudo chmod a+rw /dev/spidev0.0
+sudo chmod a+rw /dev/spidev0.1
+
+pip install rpi_ws281x --break-system-packages
+pip install smbus2 --break-system-packages
+pip install RPi.GPIO --break-system-packages
+
 
 # Setup Bluetooth
 sudo apt install -y bluetooth bluez libbluetooth-dev
