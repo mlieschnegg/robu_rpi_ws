@@ -33,6 +33,7 @@ sudo chmod a+rw /dev/spidev0.0
 sudo chmod a+rw /dev/spidev0.1
 
 pip install rpi_ws281x --break-system-packages
+pip install smbus --break-system-packages
 pip install smbus2 --break-system-packages
 pip install RPi.GPIO --break-system-packages
 
