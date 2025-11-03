@@ -34,8 +34,8 @@
 import sys
 import spidev
 from warnings import warn
-from neopixel.rgblib.neopixel_spi_write import neopixel_spi_write
-from neopixel.rgblib import pixelbuf
+from neopixel.ledlib.neopixel_spi_write import neopixel_spi_write
+from neopixel.ledlib import pixelbuf
 
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_NeoPixel.git"

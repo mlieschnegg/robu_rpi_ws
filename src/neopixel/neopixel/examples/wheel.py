@@ -7,8 +7,8 @@
 #
 
 import time
-from neopixel.rgblib import neopixel_spidev as np
-from neopixel.rgblib.pixelbuf import wheel
+from neopixel.ledlib import neopixel_spidev as np
+from neopixel.ledlib.pixelbuf import wheel
 # Init 56 LEDs on SPI bus 2, cs 0 with colors ordered green, red, blue
 with np.NeoPixelSpiDev(2, 0, n=56, pixel_order=np.GRB) as pixels:
     try:
