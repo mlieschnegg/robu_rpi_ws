@@ -9,7 +9,7 @@
 import colorsys
 import time
 from numpy import arange
-from lib import neopixel_spidev as np
+from neopixel.rgblib import neopixel_spidev as np
 
 # Init 56 LEDs on SPI bus 2, cs 0 with colors ordered green, red, blue
 with np.NeoPixelSpiDev(2, 0, n=56, pixel_order=np.GRB) as pixels:

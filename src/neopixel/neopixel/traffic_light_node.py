@@ -1,7 +1,7 @@
 from rclpy.node import Node
 import rclpy
 
-from neopixel.lib import neopixel_spidev as np
+from neopixel.rgblib import neopixel_spidev as np
 
 class TrafficLightNode(Node):
     def __init__(self, node_name: str):
