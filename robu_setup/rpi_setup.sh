@@ -19,6 +19,12 @@ sudo adduser $USER dialout
 sudo adduser $USER video
 sudo adduser $USER kmem
 
+sudo groupadd spi
+sudo usermod -aG spi $USER
+echo 'KERNEL=="spidev*", GROUP="spi", MODE="0660"' | sudo tee /etc/udev/rules.d/99-spi.rules > /dev/null
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+
 #sudo adduser $USER gpio -> gibt es eventuell nicht, Gruppe erstellen plus udev rule hinzufügen
 sudo chown root:$USER /dev/gpiomem
 

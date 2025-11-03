@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'traffic_light = neopixel.traffic_light_node:main',
         ],
     },
 )
