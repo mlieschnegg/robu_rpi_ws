@@ -301,6 +301,7 @@ class PixelBuf:  # pylint: disable=too-many-instance-attributes
         self._post_brightness_buffer[offset + self._byteorder[2]] = int(
             b * self._brightness
         )
+        # print("Buffer: ", self._post_brightness_buffer)
 
     def __setitem__(self, index, val):
         if isinstance(index, slice):
@@ -309,7 +310,9 @@ class PixelBuf:  # pylint: disable=too-many-instance-attributes
                 r, g, b, w = self._parse_color(val[val_i])
                 self._set_item(in_i, r, g, b, w)
         else:
+            # print(f"Index: {index}, Val: {val}")
             r, g, b, w = self._parse_color(val)
+            # print(f"R {r}, G {g}, B{b}, W {w}")
             self._set_item(index, r, g, b, w)
 
         if self.auto_write:

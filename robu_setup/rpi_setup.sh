@@ -12,7 +12,8 @@ fi
 #optional: Install wiringpi for GPIO control
 #sudo apt install wiringpi
 
-sudo apt install rpi.gpio-common
+sudo apt -y install rpi.gpio-common
+sudo apt -y install python3-rpi.gpio
 
 #Benutzer zur Gruppe dialout hinzufügen (z.B. serielle Schnittstelle)
 sudo adduser $USER dialout
