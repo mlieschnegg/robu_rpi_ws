@@ -168,6 +168,29 @@
         ")"
         ],
         "description": "Include a launch description with placeholders for package and launch file"
-    }
-      
+    },
+
+    "CMakeLists: Include RIDL": {
+        "prefix": "ros_cmake_ridl",
+        "body": [
+            "find_package(rosidl_default_generators REQUIRED)",
+            "",
+            "rosidl_generate_interfaces(\\${PROJECT_NAME}",
+            "\"srv/MeinInterface.srv\"",
+            ")",
+            "",
+            "ament_export_dependencies(rosidl_default_runtime)",
+        ],
+        "description": "Erweiterung in CMAKE zum Bauen von Interfaces mit RIDL"
+    },
+
+    "package_xml: Include RIDL": {
+        "prefix": "ros_package_xml_ridl",
+        "body": [
+            "  <buildtool_depend>rosidl_default_generators</buildtool_depend>",
+            "  <exec_depend>rosidl_default_runtime</exec_depend>",
+            "  <member_of_group>rosidl_interface_packages</member_of_group>",
+        ],
+        "description": "Erweiterung in package.xml zum Bauen von Interfaces mit RIDL"
+    },
 }
