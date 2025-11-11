@@ -11,5 +11,4 @@
         "build/robuboard",
         "build/dynamixel_utils",
     ],
-    "cmake.sourceDirectory": "/home/robu/work/.robu/src/traffic_light_interfaces"
 }
