@@ -10,7 +10,7 @@ export FASTRTPS_DEFAULT_PROFILES_FILE=/home/robu/work/.robu/config/fastdds.xml
 #export CYCLONEDDS_URI=/home/robu/work/.robu/config/cyclonedds.xml
 #export CYCLONEDDS_NETWORK_INTERFACE_ADDRESS=192.168.0.234
 
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 source /home/robu/work/turtlebot3_ws/install/setup.bash
 source /home/robu/work/microros_ws/install/local_setup.bash
 source /home/robu/work/robocup-ros/install/setup.bash

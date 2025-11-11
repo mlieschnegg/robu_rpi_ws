@@ -10,5 +10,6 @@
         "/opt/ros/jazzy/local/lib/python3.12/dist-packages",
         "build/robuboard",
         "build/dynamixel_utils",
-    ]
+    ],
+    "cmake.sourceDirectory": "/home/robu/work/.robu/src/traffic_light_interfaces"
 }
