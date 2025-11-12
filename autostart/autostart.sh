@@ -81,3 +81,5 @@ if /usr/bin/python3 -c "from robuboard.rpi.utils import is_raspberry_pi; print(i
     /usr/bin/python3 $ROBU_RPI_WS/autostart/ros_launcher.py
 fi
 
+sudo rm -rf ~/work/robu_lab*/
+
