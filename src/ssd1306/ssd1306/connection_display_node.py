@@ -22,7 +22,7 @@ def draw_info_network(oled:SSD1306, hostname:str, ip:str, ssid:str, signal:int, 
     oled.canvas.text((5, 5),  f"HN: {hostname}", fill=1)
     oled.canvas.text((5, 20), f"IP: {ip}", fill=1)
     oled.canvas.text((5, 35), f"SSID: {ssid}", fill=1)
-    oled.canvas.text((5, 50), f"SIG: {signal} dBm,ROSID:{rid}", fill=1)
+    oled.canvas.text((5, 50), f"SIG: {signal} dBm,ROSID: {rid}", fill=1)
 
     oled.display()
 
