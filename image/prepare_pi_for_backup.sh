@@ -35,6 +35,11 @@ rm -rf ~/Downloads/*
 rm -rf ~/.python_history
 rm -rf ~/.bash_history
 rm -rf ~/.local/share/Trash/{files,info}/*
+rm -f ~/.ssh/config
+rm -f ~/.ssh/authorized_keys
+rm -f ~/.ssh/known_hosts
+rm -f ~/.ssh/known_hosts.old
+
 snap list --all | awk '/disabled/{print $1, $3}' | while read snapname revision; do sudo snap remove --purge "$snapname" --revision="$revision"; done
 
 
