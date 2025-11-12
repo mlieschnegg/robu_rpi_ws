@@ -31,9 +31,6 @@ disable_fw_kms_setup=1
 camera_auto_detect=1
 display_auto_detect=1
 
-# Display on DS1
-dtoverlay=vc4-kms-dsi-7inch
-
 # Config settings specific to arm64
 dtoverlay=dwc2
 
@@ -46,6 +43,12 @@ hdmi_force_hotplug=1
 [pi4]
 max_framebuffers=2
 arm_boost=1
+
+core_freq=500
+core_freq_min=500
+
+# Display on DS1
+dtoverlay=vc4-kms-dsi-7inch
 
 #dtoverlay=imx219,cam0
 dtoverlay=ov5647,cam0
@@ -66,6 +69,9 @@ dtoverlay=vc4-kms-v3d,cma-128
 # such a board)
 dtoverlay=dwc2,dr_mode=host
 
+# Display on DS1
+dtoverlay=vc4-kms-dsi-7inch
+
 camera_auto_detect=0
 dtoverlay=ov5647,cam0
 dtoverlay=imx708,cam1
@@ -83,11 +89,15 @@ dtoverlay=uart3
 
 [cm5]
 dtoverlay=dwc2,dr_mode=host
+
 dtparam=i2c_csi_dsi0=on
 dtparam=i2c_csi_dsi1=on
 camera_auto_detect=0
-dtoverlay=ov5647,cam1
-dtoverlay=imx708,cam0
+dtoverlay=ov5647,cam0
+dtoverlay=imx708,cam1
+dtoverlay=imx708_cam1_ubuntu
 
 dtoverlay=uart3
 
+#dtoverlay=cam1_imx708_bus_fix
+#dtoverlay=imx708_cam1_full

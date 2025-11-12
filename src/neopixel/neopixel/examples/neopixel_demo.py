@@ -1,4 +1,4 @@
-from neopixel.lib import neopixel_spidev as np
+from neopixel.common import neopixel_spidev as np
 
 def createPixelStrip(led_num:int=3) -> np.NeoPixelSpiDev:
     # LED-Konfiguration

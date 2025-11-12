@@ -2,11 +2,12 @@ from rclpy.node import Node
 import rclpy
 
 import os
-from smbus import SMBus
-from ssd1306.lib.ssd1306 import SSD1306
 import time
-from robuboard.rpi.utils import is_raspberry_pi
 
+from smbus import SMBus
+
+from ssd1306.common.ssd1306 import SSD1306
+from robuboard.rpi.utils import is_raspberry_pi
 from robuboard.rpi.netinfo import get_current_wifi_signal, get_interface, get_ip_address, get_ssid
 
 def init_display():
