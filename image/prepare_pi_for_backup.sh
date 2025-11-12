@@ -28,6 +28,16 @@ if [[ $EUID -ne 0 ]]; then
   echo "Bitte mit sudo als root ausführen."; exit 1
 fi
 
+rm -rf ~/snap/firefox/
+rm -rf ~/.cache/vscode-cpptools/*
+rm -rf ~/.cache/pip/*
+rm -rf ~/Downloads/*
+rm -rf ~/.python_history
+rm -rf ~/.bash_history
+rm -rf ~/.local/share/Trash/{files,info}/*
+snap list --all | awk '/disabled/{print $1, $3}' | while read snapname revision; do sudo snap remove --purge "$snapname" --revision="$revision"; done
+
+
 echo "==> Paketlisten aktualisieren ..."
 apt update
 
