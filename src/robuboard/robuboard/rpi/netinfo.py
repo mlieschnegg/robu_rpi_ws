@@ -31,7 +31,7 @@ def get_ssid(interface):
     else:
         return "LAN"
 
-def get_current_wifi_signal():
+def get_current_wifi_signal() -> tuple[str, int]:
     # -t = terse, -f = Felder
     cmd = ["nmcli", "-t", "-f", "active,ssid,signal", "dev", "wifi"]
     out = subprocess.check_output(cmd, text=True)
@@ -44,4 +44,4 @@ def get_current_wifi_signal():
             signal = parts[2]  # in Prozent
             return ssid, int(signal)
 
-    return None, None
+    return "", 0

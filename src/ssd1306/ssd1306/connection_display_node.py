@@ -4,7 +4,7 @@ import rclpy
 import os
 import time
 
-from smbus import SMBus
+from smbus3 import SMBus
 
 from ssd1306.common.ssd1306 import SSD1306
 from robuboard.rpi.utils import is_raspberry_pi
@@ -15,14 +15,14 @@ def init_display():
     i2cbus = SMBus(1)
     return SSD1306(i2cbus)
 
-def draw_info_network(oled:SSD1306, hostname:str, ip:str, ssid:str, signal:int):
+def draw_info_network(oled:SSD1306, hostname:str, ip:str, ssid:str, signal:int, rid:int=0):
     """Zeichnet die Infos auf dem Display."""
     oled.canvas.rectangle((0, 0, oled.width-1, oled.height-1), outline=1, fill=0)
 
     oled.canvas.text((5, 5),  f"HN: {hostname}", fill=1)
     oled.canvas.text((5, 20), f"IP: {ip}", fill=1)
     oled.canvas.text((5, 35), f"SSID: {ssid}", fill=1)
-    oled.canvas.text((5, 50), f"Signal: {signal} dbm", fill=1)
+    oled.canvas.text((5, 50), f"SIG: {signal} dbm, ROS-ID: {rid}", fill=1)
 
     oled.display()
 
@@ -43,24 +43,65 @@ class ConnectionDisplayNode(Node):
         self._hostname:str = ""
         self._ip_address:str = ""
         self._ssid:str = ""
+        self._signal:int = 0
         self._rid:int = -1 #ROS_DOMAIN_ID
 
-        self._oled = init_display()
+        self._initialized:bool = False
+
+        self._display_init()
+        self.display_cls()
+
         self._timer_display_info = self.create_timer(10.0, self._timer_display_info_cb)
 
         self._timer_display_info_cb()
 
-    def _timer_display_info_cb(self):
+    def _display_init(self):
+        if not self._initialized:
+            self._oled:SSD1306 = SSD1306(SMBus(1))
+            self._oled.set_on(True)
+            self._oled.bus.close()
+            self._initialized = True
+        return self._initialized
+
+    def display_cls(self):
+        if not self._initialized:
+            return
+        self._oled.bus.open(1)
+        self._oled.cls()
+        self._oled.bus.close()
+
+    def display_connection_info(self):
+        if not self._initialized:
+            return
+        self._oled.bus.open(1)
+        self._oled.cls()
+        draw_info_network(self._oled, self._hostname, self._ip_address, self._ssid, self._signal)
+        self._oled.bus.close()  
+
+    def update_connection_info(self):
+        if not self._initialized:
+            return
         hostname = os.uname().nodename
         ip_address = get_ip_address()
         ssid, signal = get_current_wifi_signal()
-        ros_domain_id = os.getenv("ROS_DOMAIN_ID")
-        self._oled.bus.close()
-        if self._hostname != hostname or self._ip_address != ip_address or self._ssid != ssid:
+        ros_domain_id = int(os.getenv("ROS_DOMAIN_ID", 0))
+        if self._hostname != hostname or \
+            self._ip_address != ip_address or \
+            self._ssid != ssid or \
+            self._rid != ros_domain_id:
+
             self._hostname = hostname
             self._ip_address = ip_address
             self._ssid = ssid
-            draw_info_network(self._oled, hostname, ip_address, ssid, signal)
+            self._signal = signal
+            self._rid = ros_domain_id
+            self.display_connection_info()
+
+    def _timer_display_info_cb(self):
+        self.get_logger().debug("Update des OLED-Displays")
+        self._display_init()
+        self.update_connection_info()
+
 
     def destroy_node(self):
         return super().destroy_node()

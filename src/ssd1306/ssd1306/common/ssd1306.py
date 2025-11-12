@@ -21,7 +21,7 @@
 
 from PIL import Image, ImageDraw
 
-from smbus import SMBus
+from smbus3 import SMBus
 
 class SSD1306():
 
@@ -105,8 +105,8 @@ class SSD1306():
         self.canvas.rectangle((0, 0, self.width-1, self.height-1), outline=0, fill=0)
         self.display()
 
-    def onoff(self, onoff):
-        if onoff == 0:
+    def set_on(self, on:bool=True):
+        if on == False:
             self._command(const.DISPLAYOFF)
         else:
             self._command(const.DISPLAYON)
