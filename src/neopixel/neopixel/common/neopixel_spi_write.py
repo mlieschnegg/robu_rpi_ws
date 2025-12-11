@@ -18,7 +18,7 @@ def neopixel_spi_write(spi, data):
 def neopixel_spi_write_debug(spi, data):
     # print(f"data: {data}")
     d = numpy.array(data).ravel()
-    reset = numpy.zeros(6*4, dtype=numpy.uint8)
+    #reset = numpy.zeros(6*4, dtype=numpy.uint8)
     tx = numpy.zeros(len(d) * 4, dtype = numpy.uint8)
 
     for ibit in range(4):

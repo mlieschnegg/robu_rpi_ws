@@ -2,6 +2,51 @@ from pathlib import Path
 import re
 CPUINFO_PATH = Path("/proc/cpuinfo")
 
+from smbus2 import SMBus, i2c_msg
+from threading import Thread
+import time
+
+global IS_ROBUBOARD_V1
+global IS_ROBUBOARD
+
+IS_ROBUBOARD_V1:bool = False
+IS_ROBUBOARD = False
+
+def _ping_worker(bus, address, result):
+    """
+    Wird im Thread ausgeführt. Versucht ein I2C-Write-Quick.
+    Ergebnis wird in result[0] gespeichert.
+    """
+    try:
+        with SMBus(bus) as bus:
+            msg = i2c_msg.write(address, [])
+            bus.i2c_rdwr(msg)
+        result.append(True)
+    except OSError:
+        result.append(False)
+    except Exception:
+        result.append(False)
+
+
+def i2c_ping(bus: int, address: int, timeout: float = 0.1) -> bool:
+    """
+    Pingt eine I2C-Adresse mit Timeout.
+    Rückgabe:
+      True  → Gerät antwortet
+      False → Kein Gerät oder Timeout
+    """
+    result = []
+    thread = Thread(target=_ping_worker, args=(bus, address, result))
+    thread.start()
+    thread.join(timeout)
+
+    if thread.is_alive():
+        # Thread hängt → Timeout erreicht
+        return False
+
+    return result[0] if result else False
+
+
 def is_raspberry_pi():
     if not CPUINFO_PATH.exists():
         return False
@@ -52,7 +97,20 @@ def is_mmteensy():
 #     return teensy_detected
 
 def is_robuboard():
-    return is_raspberry_pi() and is_mmteensy()
+    global IS_ROBUBOARD_V1
+    global IS_ROBUBOARD
+
+    IS_ROBUBOARD = is_raspberry_pi() and is_mmteensy()
+    IS_ROBUBOARD_V1 = False
+    if IS_ROBUBOARD: IS_ROBUBOARD_V1 = i2c_ping(0, 0x41)
+    return IS_ROBUBOARD
+
+def is_robuboard_v1():
+    global IS_ROBUBOARD_V1
+    is_robuboard()
+    return IS_ROBUBOARD_V1
+
+is_robuboard()
 
 if __name__ == '__main__':
     print("Is Raspberry Pi: ", is_raspberry_pi())
