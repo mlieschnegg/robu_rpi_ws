@@ -13,7 +13,7 @@ def neopixel_spi_write(spi, data):
     for ibit in range(4):
         tx[3 - ibit::4] = ((d >> (2 * ibit + 1)) & 1) * 0x60 + \
                           ((d >> (2 * ibit + 0)) & 1) * 0x06 + 0x88
-    spi.xfer(tx.tolist())
+    spi.xfer(tx.tolist(), int(4/1.25e-6))
 
 def neopixel_spi_write_debug(spi, data):
     # print(f"data: {data}")

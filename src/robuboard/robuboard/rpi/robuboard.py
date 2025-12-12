@@ -127,19 +127,23 @@ def start_bootloader_teensy():
 
     if is_mmteensy() and not is_bootloader_teensy():
         print("starting bootloader on teensy...")
-        # argument -b is not working
-        # subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-b"])
-        firmware_path:str="/home/robu/work/robocup/robocup-teensy/.pio/build/teensymm/firmware.hex"
-        subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", firmware_path],
-                       stdout=subprocess.DEVNULL,  # Standardausgabe unterdrücken
-                        stderr=subprocess.DEVNULL)  # Fehlerausgabe unterdrücken
+ 
         if IS_ROBUBOARD_V1 and not is_bootloader_teensy():
+            print ("RobuBoard V1")
             bus = smbus.SMBus(1)
             val = bus.read_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT)
             bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, val | (1 << PCA9536_BIT_TEENSY_BOOT))
             time.sleep(0.1)
             bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, val & ~(1 << PCA9536_BIT_TEENSY_BOOT))
             bus.close()
+        elif not is_bootloader_teensy():
+            print("RobuBaord V0")
+            # argument -b is not working
+            # subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-b"])
+            firmware_path:str="/home/robu/work/robocup/robocup-teensy/.pio/build/teensymm/firmware.hex"
+            subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", firmware_path],
+                        stdout=subprocess.DEVNULL,  # Standardausgabe unterdrücken
+                            stderr=subprocess.DEVNULL)  # Fehlerausgabe unterdrücken
             
     elif is_bootloader_teensy():
         print("bootloader allready activated!")
@@ -183,7 +187,7 @@ def set_status_led(r:int=50, g:int=10, b:int=0, w:int=0):
         spi = spidev.SpiDev()
         spi.open(0,0)
         neopixel_spi_write(spi, [[g,r,b]])
-        spi.close()
+        #spi.close()
 
 if __name__ == '__main__':
     # start_status_led_with_sudo()
