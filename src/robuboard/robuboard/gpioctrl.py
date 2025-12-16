@@ -56,16 +56,19 @@ class PowerSwitch(Node):
         #self.get_logger().info(f"teensy power switch state: {msg.data}")
         vals = [bool(val) for val in msg.data]
         if self._mmt_power_switch_state[1] and not vals[1]: #mmty enables the power-ic to switch on
+            r, g, b = 0, 255, 0
             try:
-                import subprocess
-                r, g, b = 0, 255, 0
-                command = f"sudo -E env \"ROS_LOCALHOST_ONLY=$ROS_LOCALHOST_ONLY\" \
-                    \"RMW_FASTRTPS_USE_SHM=$RMW_FASTRTPS_USE_SHM\" \
-                    \"ROS_DOMAIN_ID=$ROS_DOMAIN_ID\" \"RMW_IMPLEMENTATION=$RMW_IMPLEMENTATION\" \
-                    \"PYTHONPATH=$PYTHONPATH\" \"LD_LIBRARY_PATH=$LD_LIBRARY_PATH\" \"PATH=$PATH\" \
-                    \"USER=$USER\" bash -c \
-                    'ros2 run robuboard set_status_led --ros-args -p r:={r} -p g:={g} -p b:={b}'"
-                subprocess.run(command, shell=True)
+                if not robuboard.IS_ROBUBOARD_V1:
+                    import subprocess
+                    command = f"sudo -E env \"ROS_LOCALHOST_ONLY=$ROS_LOCALHOST_ONLY\" \
+                        \"RMW_FASTRTPS_USE_SHM=$RMW_FASTRTPS_USE_SHM\" \
+                        \"ROS_DOMAIN_ID=$ROS_DOMAIN_ID\" \"RMW_IMPLEMENTATION=$RMW_IMPLEMENTATION\" \
+                        \"PYTHONPATH=$PYTHONPATH\" \"LD_LIBRARY_PATH=$LD_LIBRARY_PATH\" \"PATH=$PATH\" \
+                        \"USER=$USER\" bash -c \
+                        'ros2 run robuboard set_status_led --ros-args -p r:={r} -p g:={g} -p b:={b}'"
+                    subprocess.run(command, shell=True)
+                else:
+                    robuboard.set_status_led(r,g,b)
             #   robuboard.disable_5v_supply()
             except:
               pass
@@ -96,6 +99,21 @@ def main_reset_teensy(args=None):
         if is_robuboard():
             mynode.get_logger().info("Restarting Teensy!")
             robuboard.power_on_teensy()
+            robuboard.start_firmware_teensy()
+        else:
+            mynode.get_logger().error("No RobuBoard found!")
+    except KeyboardInterrupt:
+       pass
+    mynode.destroy_node()
+    rclpy.shutdown()
+
+def main_poweroff_teensy(args=None):
+    rclpy.init(args=args)
+    mynode = rclpy.node.Node("reset_teensy")
+    try:
+        if is_robuboard():
+            mynode.get_logger().info("Restarting Teensy!")
+            robuboard.power_off_teensy()
         else:
             mynode.get_logger().error("No RobuBoard found!")
     except KeyboardInterrupt:
@@ -106,10 +124,26 @@ def main_reset_teensy(args=None):
 def main_start_bootloader_teensy(args=None):
     rclpy.init(args=args)
     mynode = rclpy.node.Node("start_bootloader_teensy")
+    mynode.declare_parameter("force", False)
     try:
         if is_mmteensy():
             mynode.get_logger().info("Starting Teensy Bootloader!")
-            robuboard.start_bootloader_teensy()
+            force = mynode.get_parameter("force").get_parameter_value().bool_value
+            robuboard.start_bootloader_teensy(force)
+        else:
+            mynode.get_logger().error("No Teensy found!")
+    except KeyboardInterrupt:
+        pass
+    mynode.destroy_node()
+    rclpy.shutdown()
+
+def main_start_firmware_teensy(args=None):
+    rclpy.init(args=args)
+    mynode = rclpy.node.Node("start_firmware_teensy")
+    try:
+        if is_mmteensy():
+            mynode.get_logger().info("Starting Firmware on Teensy!")
+            robuboard.start_firmware_teensy()
         else:
             mynode.get_logger().error("No Teensy found!")
     except KeyboardInterrupt:

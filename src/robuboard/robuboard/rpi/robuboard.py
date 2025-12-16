@@ -81,9 +81,9 @@ def get_power_switch() -> bool:
 def power_off_teensy():
     init_gpios()
 
-    if is_mmteensy() and is_bootloader_teensy():
-        print("Bootloader is activated. Please Upload a firmware!")
-        return
+    # if is_mmteensy() and is_bootloader_teensy():
+    #     print("Bootloader is activated. Please Upload a firmware!")
+    #     return
     
     enable_5v_supply()
     print("powering off teensy...")
@@ -95,17 +95,19 @@ def power_off_teensy():
     else:
         bus = smbus.SMBus(1)
         val = bus.read_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT)
+        print(f"val (on): {val | (1 << PCA9536_BIT_TEENSY_RESET):b}")
         bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, val | (1 << PCA9536_BIT_TEENSY_RESET))
         time.sleep(5)
+        print(f"val (off) {val & ~(1 << PCA9536_BIT_TEENSY_RESET):b}")
         bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, val & ~(1 << PCA9536_BIT_TEENSY_RESET))
         bus.close()
 
 def power_on_teensy():
     init_gpios()
 
-    if is_mmteensy() and is_bootloader_teensy():
-        print("Bootloader is activated. Please Upload a firmware!")
-        return
+    # if is_mmteensy() and is_bootloader_teensy():
+    #     print("Bootloader is activated. Please Upload a firmware!")
+    #     return
     power_off_teensy()
     print("powering on teensy...")
     if not IS_ROBUBOARD_V1:
@@ -115,29 +117,40 @@ def power_on_teensy():
     else:
         bus = smbus.SMBus(1)
         val = bus.read_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT)
+        print(f"val (on): {val | (1 << PCA9536_BIT_TEENSY_RESET):b}")
         bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, val | (1 << PCA9536_BIT_TEENSY_RESET))
         time.sleep(1)
+        print(f"val (off): {val & ~(1 << PCA9536_BIT_TEENSY_RESET):b}")
         bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, val & ~(1 << PCA9536_BIT_TEENSY_RESET))
         bus.close()
 
-def start_bootloader_teensy():
+def start_firmware_teensy():
+    import subprocess
+
+    init_gpios()
+    enable_5v_supply()
+    print("starting firmware on teensy ...")
+    subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-b", "-v"])
+
+
+def start_bootloader_teensy(force=False):
     import subprocess
     init_gpios()
     enable_5v_supply()
 
-    if is_mmteensy() and not is_bootloader_teensy():
+    if is_mmteensy() and (not is_bootloader_teensy() or force):
         print("starting bootloader on teensy...")
  
         if IS_ROBUBOARD_V1 and not is_bootloader_teensy():
-            print ("RobuBoard V1")
             bus = smbus.SMBus(1)
             val = bus.read_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT)
+            print(f"val (on): {val | (1 << PCA9536_BIT_TEENSY_BOOT):b}")
             bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, val | (1 << PCA9536_BIT_TEENSY_BOOT))
             time.sleep(0.1)
+            print(f"val (off): {val & ~(1 << PCA9536_BIT_TEENSY_BOOT):b}")
             bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, val & ~(1 << PCA9536_BIT_TEENSY_BOOT))
             bus.close()
         elif not is_bootloader_teensy():
-            print("RobuBaord V0")
             # argument -b is not working
             # subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-b"])
             firmware_path:str="/home/robu/work/robocup/robocup-teensy/.pio/build/teensymm/firmware.hex"

@@ -23,11 +23,14 @@ setup(
     entry_points={
         'console_scripts': [
             "reset_teensy = robuboard.gpioctrl:main_reset_teensy",
+            "poweron_teensy = robuboard.gpioctrl:main_reset_teensy",
+            "poweroff_teensy = robuboard.gpioctrl:main_poweroff_teensy",
             "powerswitch = robuboard.gpioctrl:main_powerswitch",
             "set_status_led = robuboard.gpioctrl:main_set_status_led",
             "start_bootloader_teensy = robuboard.gpioctrl:main_start_bootloader_teensy",
             "upload_firmware_teensy = robuboard.gpioctrl:main_upload_firmware_teensy",
             "build_firmware_teensy = robuboard.gpioctrl:main_build_firmware_teensy",
+            "start_firmware_teensy = robuboard.gpioctrl:main_start_firmware_teensy",
             "build_upload_firmware_teensy = robuboard.gpioctrl:main_build_upload_firmware_teensy",
         ],
     },

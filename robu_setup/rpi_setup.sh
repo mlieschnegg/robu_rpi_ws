@@ -20,6 +20,30 @@ sudo adduser $USER dialout
 sudo adduser $USER video
 sudo adduser $USER kmem
 
+# 1) Gruppe gpio anlegen (falls nicht vorhanden)
+if ! getent group gpio > /dev/null; then
+    sudo groupadd gpio
+fi
+
+# 2) User zur Gruppe hinzufügen
+if ! id -nG $USER | grep -qw "gpio"; then
+    sudo usermod -aG gpio $USER
+fi
+
+# 3) udev-Regel schreiben (atomar, sauber)
+sudo tee "/etc/udev/rules.d/99-gpio.rules" > /dev/null <<'EOF'
+# GPIO character devices
+SUBSYSTEM=="gpio", KERNEL=="gpiochip*", MODE="0660", GROUP="gpio"
+SUBSYSTEM=="gpio", KERNEL=="gpio*",     MODE="0660", GROUP="gpio"
+
+# GPIO memory access (if available)
+KERNEL=="gpiomem", MODE="0660", GROUP="gpio"
+EOF
+
+# 4) udev neu laden
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+
 sudo groupadd spi
 sudo usermod -aG spi $USER
 echo 'KERNEL=="spidev*", GROUP="spi", MODE="0660"' | sudo tee /etc/udev/rules.d/99-spi.rules > /dev/null

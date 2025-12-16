@@ -83,7 +83,7 @@ def is_mmteensy():
     import subprocess
     try:
         result = subprocess.run(["lsusb"], capture_output=True, text=True, check=True)
-        return "Teensy" in result.stdout
+        return "Teensy" in result.stdout or "NXP Semiconductors SE Blank RT Family"
     except subprocess.CalledProcessError:
         return False 
     
