@@ -11,7 +11,7 @@ import subprocess
 import time
 
 class PowerSwitch(Node):
-    POWEROFF_TIMEOUT = 5.0          #seconds
+    POWEROFF_TIMEOUT = 3.0          #seconds
     POWEROFF_TIMER_INTERVAL = 0.1   #seconds
     POWEROFF_LED_VALUES:tuple[int,int,int] = (0, 128, 0) #(r,g,b)
 
@@ -64,7 +64,6 @@ class PowerSwitch(Node):
         msg.layout.dim.append(MultiArrayDimension(label='booleans', size=len(byte_values), stride=1))
         msg.data = byte_values
 
-         
         if robuboard.get_power_switch():
             if self._timer_poweroff == None: #power siwtch is pressed
                 self._cnt_poweroff = 0
@@ -97,8 +96,15 @@ class PowerSwitch(Node):
             self.get_logger().info("Release the power button to shutdown the robuboard!")
             while robuboard.get_power_switch():
                 time.sleep(0.1)
-            time.sleep(1.0)
-            self.get_logger().info("Shutdown...")
+
+            r,g,b = PowerSwitch.POWEROFF_LED_VALUES
+            for i in range(20, 0, -1):
+                if i%2 == 0:
+                    robuboard.set_status_led(r, g, b)
+                else:
+                    robuboard.set_status_led(0, 0, 0)
+                self.get_logger().info(f"Shutdown in {i:02d} s")
+                time.sleep(1.0)
             subprocess.run(["sudo", "shutdown", "now"])
 
         self._cnt_poweroff += 1
