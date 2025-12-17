@@ -1,0 +1,14 @@
+[Unit]
+Description=Power off 5V supply (GPIO26) at end of shutdown
+DefaultDependencies=no
+Before=poweroff.target halt.target
+# Wichtig: absichtlich NICHT vor reboot.target, damit beim Reboot die Versorgung bleibt.
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/robu/work/.robu/src/robuboard/robuboard/rpi/robuboard_power_off_5v.py
+#ExecStart=/usr/local/sbin/robuboard_power_off_5v.py
+TimeoutStartSec=5
+
+[Install]
+WantedBy=poweroff.target halt.target

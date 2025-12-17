@@ -107,3 +107,8 @@ bluetoothctl scan off
 # EOF
 
 # sudo systemctl enable bt-controller-connect.service
+
+
+# sudo cp robuboard_power_off_5v.service /etc/systemd/system/robuboard_power_off_5v.service
+# sudo systemctl daemon-reload
+# sudo systemctl enable robuboard_power_off_5v.service

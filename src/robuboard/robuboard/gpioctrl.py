@@ -7,33 +7,48 @@ import rclpy.timer
 from std_msgs.msg import Bool, String, ByteMultiArray, MultiArrayDimension
 from robuboard.rpi.utils import is_raspberry_pi, is_robuboard, is_mmteensy
 import robuboard.rpi.robuboard as robuboard
+import subprocess
+import time
 
 class PowerSwitch(Node):
-    _pub_powerswitch_rpi : rclpy.publisher.Publisher = None
-    _timer_power_switch : rclpy.timer.Timer = None
-    _mmt_power_switch_state : list[bool] = [False, False]
+    POWEROFF_TIMEOUT = 5.0          #seconds
+    POWEROFF_TIMER_INTERVAL = 0.1   #seconds
+    POWEROFF_LED_VALUES:tuple[int,int,int] = (0, 128, 0) #(r,g,b)
 
     def __init__(self, node_name : str):
         super().__init__(node_name)
+
+        self._mmt_power_switch_state : list[bool] = [False, False]
+        self._cnt_poweroff = 0
+
         if is_raspberry_pi():
             robuboard.init_gpios()
+            r, g, b = PowerSwitch.POWEROFF_LED_VALUES
+            robuboard.set_status_led(r,g,b)
         else:
             msg = "This node can only run on a Raspberry Pi!"
             self.get_logger().error(msg)
             self.destroy_node()
             raise Warning(msg)
-        self._pub_powerswitch_rpi = self.create_publisher(ByteMultiArray, 
-                                                          "robuboard/rpi/powerswitch_state", 
-                                                          rclpy.qos.QoSProfile(depth=10))
         
-        self._timer_power_switch = self.create_timer(1.0, self._timer_power_switch_callback)
+
+        self._pub_powerswitch_rpi = self.create_publisher(
+            ByteMultiArray, 
+            "robuboard/rpi/powerswitch_state",
+            rclpy.qos.QoSProfile(depth=10))
+        
+        self._timer_power_switch = self.create_timer(
+            1.0, 
+            self._timer_power_switch_cb)
 
         self._sub_powerswtich_mmt = self.create_subscription(ByteMultiArray, 
                                                              "robuboard/mmt/powerswitch_state",
-                                                             self._sub_powerswitch_mmt_state,
+                                                             self._sub_powerswitch_mmt_state_cb,
                                                              rclpy.qos.QoSProfile(depth=10))
     
-    def _timer_power_switch_callback(self):
+        self._timer_poweroff : rclpy.timer.Timer | None = None
+
+    def _timer_power_switch_cb(self):
 
         # Boolean-Werte in Bytes umwandeln
         try:
@@ -49,17 +64,54 @@ class PowerSwitch(Node):
         msg.layout.dim.append(MultiArrayDimension(label='booleans', size=len(byte_values), stride=1))
         msg.data = byte_values
 
+         
+        if robuboard.get_power_switch():
+            if self._timer_poweroff == None: #power siwtch is pressed
+                self._cnt_poweroff = 0
+                self._timer_poweroff = self.create_timer(
+                    PowerSwitch.POWEROFF_TIMER_INTERVAL,
+                    self._timer_poweroff_cb)
+        elif self._timer_poweroff is not None:
+            self._timer_poweroff.destroy()
+            self._timer_poweroff = None
+            r, g, b = PowerSwitch.POWEROFF_LED_VALUES
+            robuboard.set_status_led(r,g,b)
+
         self._pub_powerswitch_rpi.publish(msg)
 
-    def _sub_powerswitch_mmt_state(self, msg : ByteMultiArray):
+    def _timer_poweroff_cb(self):
+        # robuboard.set_status_led()
+        r,g,b = PowerSwitch.POWEROFF_LED_VALUES
+        cnt_poweroff_max = int(PowerSwitch.POWEROFF_TIMEOUT / PowerSwitch.POWEROFF_TIMER_INTERVAL)
+        itensity = (1.0 - self._cnt_poweroff / cnt_poweroff_max)
+        r = int(r * itensity)
+        g = int(g * itensity)
+        b = int(b * itensity)
+
+        robuboard.set_status_led(r, g, b)
+
+        if self._cnt_poweroff == cnt_poweroff_max:
+            self._timer_poweroff.cancel()
+            #power off device
+            
+            self.get_logger().info("Release the power button to shutdown the robuboard!")
+            while robuboard.get_power_switch():
+                time.sleep(0.1)
+            time.sleep(1.0)
+            self.get_logger().info("Shutdown...")
+            subprocess.run(["sudo", "shutdown", "now"])
+
+        self._cnt_poweroff += 1
+        
+
+    def _sub_powerswitch_mmt_state_cb(self, msg : ByteMultiArray):
         
         #self.get_logger().info(f"teensy power switch state: {msg.data}")
         vals = [bool(val) for val in msg.data]
         if self._mmt_power_switch_state[1] and not vals[1]: #mmty enables the power-ic to switch on
-            r, g, b = 0, 255, 0
+            r, g, b = PowerSwitch.POWEROFF_LED_VALUES
             try:
                 if not robuboard.IS_ROBUBOARD_V1:
-                    import subprocess
                     command = f"sudo -E env \"ROS_LOCALHOST_ONLY=$ROS_LOCALHOST_ONLY\" \
                         \"RMW_FASTRTPS_USE_SHM=$RMW_FASTRTPS_USE_SHM\" \
                         \"ROS_DOMAIN_ID=$ROS_DOMAIN_ID\" \"RMW_IMPLEMENTATION=$RMW_IMPLEMENTATION\" \
@@ -73,7 +125,7 @@ class PowerSwitch(Node):
             except:
               pass
         self._mmt_power_switch_state = vals
-        
+
 def main_set_status_led(args=None):
     rclpy.init(args=args)
     mynode = rclpy.node.Node("set_status_led")
@@ -89,6 +141,20 @@ def main_set_status_led(args=None):
         # rclpy.spin(mynode)
     except KeyboardInterrupt:
         pass
+    mynode.destroy_node()
+    rclpy.shutdown()
+
+def main_poweroff_robuboard(args=None):
+    rclpy.init(args=args)
+    mynode = rclpy.node.Node("power_off_robuboard")
+    try:
+        if is_robuboard():
+            mynode.get_logger().info("Powering off RobuBoard...")
+            robuboard.power_off_robuboard()
+        else:
+            mynode.get_logger().error("No RobuBoard found!")
+    except KeyboardInterrupt:
+       pass
     mynode.destroy_node()
     rclpy.shutdown()
 
@@ -203,7 +269,7 @@ def main_powerswitch(args=None):
         nodes_info = temp_node.get_node_names_and_namespaces()
         running_node_names = [name for name, ns in nodes_info]
 
-        target_name = 'PowerSwitch'
+        target_name = 'power_switch'
         temp_node.destroy_node()
 
         if target_name not in running_node_names:

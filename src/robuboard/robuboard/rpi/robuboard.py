@@ -54,7 +54,7 @@ def init_gpios():
             except Exception as e:
                 print(f"Failed to configure PCA9536: {e}")
         
-        GPIO.setup(GPIO_POWER_REGULATOR_EN, GPIO.OUT)
+        GPIO.setup(GPIO_POWER_REGULATOR_EN, GPIO.OUT, initial=GPIO.HIGH)
         enable_5v_supply()
         
         GPIO.setup(GPIO_POWER_SWITCH, GPIO.IN)
@@ -77,6 +77,19 @@ def disable_5v_supply():
 
 def get_power_switch() -> bool:
     return GPIO.input(GPIO_POWER_SWITCH)
+
+def power_off_robuboard():
+    import subprocess
+
+    init_gpios()
+    enable_5v_supply()
+    print("Powering off RobuBoard ...")
+    subprocess.run(["sync"])
+    disable_5v_supply()
+    time.sleep(5)
+    print("Cannot power off RobuBoard!")
+    #subprocess.run(["shutdown", "now"])
+
 
 def power_off_teensy():
     init_gpios()
@@ -186,7 +199,6 @@ def start_status_led_with_sudo(r:int=255, g:int=255, b:int=51):
 
 #run this script with sudo!
 def set_status_led(r:int=50, g:int=10, b:int=0, w:int=0):
-    print("Setting status LED!")
     if IS_ROBUBOARD and not IS_ROBUBOARD_V1:
         from rpi_ws281x import Color, ws, PixelStrip
         status_led = PixelStrip(1, GPIO_STATUS_LED, strip_type=ws.SK6812_STRIP_RGBW)  
