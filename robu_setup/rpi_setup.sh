@@ -71,25 +71,37 @@ pip install RPi.GPIO --break-system-packages
 #sudo pip3 install adafruit-circuitpython-vl53l1x
 
 
-# Setup Bluetooth
-sudo apt install -y bluetooth bluez libbluetooth-dev
+#sudo cp robuboard_power_off_5v.service /etc/systemd/system/robuboard_power_off_5v.service
+sudo ln -sf ~/work/.robu/config/service/robuboard_power_off_5v.service /etc/systemd/system/robuboard_power_off_5v.service
+sudo systemctl daemon-reload
+sudo systemctl enable robuboard_power_off_5v.service
 
-sudo systemctl enable --now bluetooth
-# systemctl status bluetooth --no-pager
+sudo loginctl enable-linger robu
+ln -sf ~/work/.robu/config/service/robuboard-powerswitch.service ~/.config/systemd/user/robuboard-powerswitch.service
+systemctl --user daemon-reload
+systemctl --user enable robuboard-powerswitch.service
+systemctl --user start robuboard-powerswitch.service
 
-# Check if bluetooth is working
-hcitool dev
-hcitool -i hci0 scan
 
-# Pair with Wireless Game Controller (only once)
-bluetoothctl scan on
-#Game Controller 1
-bluetoothctl trust 13:88:21:24:C4:E2
-bluetoothctl connect 13:88:21:24:C4:E2
-#Game Controller 2
-bluetoothctl trust 50:AD:CE:BF:DD:9D
-bluetoothctl connect 50:AD:CE:BF:DD:9D
-bluetoothctl scan off
+# # Setup Bluetooth
+# sudo apt install -y bluetooth bluez libbluetooth-dev
+
+# sudo systemctl enable --now bluetooth
+# # systemctl status bluetooth --no-pager
+
+# # Check if bluetooth is working
+# hcitool dev
+# hcitool -i hci0 scan
+
+# # Pair with Wireless Game Controller (only once)
+# bluetoothctl scan on
+# #Game Controller 1
+# bluetoothctl trust 13:88:21:24:C4:E2
+# bluetoothctl connect 13:88:21:24:C4:E2
+# #Game Controller 2
+# bluetoothctl trust 50:AD:CE:BF:DD:9D
+# bluetoothctl connect 50:AD:CE:BF:DD:9D
+# bluetoothctl scan off
 
 
 # # Ensure automatic Bluetooth connection to the controller on reboot
@@ -107,8 +119,3 @@ bluetoothctl scan off
 # EOF
 
 # sudo systemctl enable bt-controller-connect.service
-
-
-# sudo cp robuboard_power_off_5v.service /etc/systemd/system/robuboard_power_off_5v.service
-# sudo systemctl daemon-reload
-# sudo systemctl enable robuboard_power_off_5v.service

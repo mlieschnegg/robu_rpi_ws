@@ -68,17 +68,16 @@ if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard; print(is_r
         fi
     fi
 
-    ros2 run robuboard powerswitch &
-    ros2 launch robuboard set_status_led.launch.py
+#    ros2 run robuboard powerswitch &
+#    ros2 launch robuboard set_status_led.launch.py
 fi
 
 #go to home directory
 cd
 
-ros2 run ssd1306 connection_display
-
 if /usr/bin/python3 -c "from robuboard.rpi.utils import is_raspberry_pi; print(is_raspberry_pi())" | grep -q "True"; then
-    /usr/bin/python3 $ROBU_RPI_WS/autostart/ros_launcher.py
+    ros2 run ssd1306 connection_display
+#    /usr/bin/python3 $ROBU_RPI_WS/autostart/ros_launcher.py
 fi
 
 sudo rm -rf ~/work/robu_lab*/
