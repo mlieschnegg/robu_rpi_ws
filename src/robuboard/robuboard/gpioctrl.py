@@ -35,6 +35,7 @@ class PowerSwitch(Node):
                 b = int(b_max*intensity)
                 robuboard.set_status_led(r,g,b)
             robuboard.set_status_led(r_max,g_max,b_max)
+            #TODO: timer callback erstellen und nicht blockierend programmieren....
 
         else:
             msg = "This node can only run on a Raspberry Pi!"
