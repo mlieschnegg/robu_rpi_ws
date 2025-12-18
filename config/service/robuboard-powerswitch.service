@@ -4,6 +4,7 @@ After=default.target
 
 [Service]
 Type=simple
+ExecCondition=/home/robu/work/.robu/config/service/is_robuboard.sh
 ExecStart=/bin/bash -lc 'source /opt/ros/jazzy/setup.bash; source /home/robu/work/.robu/install/setup.bash; exec ros2 run robuboard powerswitch'
 #Restart=on-failure
 #RestartSec=1
