@@ -9,11 +9,14 @@ from robuboard.rpi.utils import is_raspberry_pi, is_robuboard, is_mmteensy
 import robuboard.rpi.robuboard as robuboard
 import subprocess
 import time
+import sys
 
 class PowerSwitch(Node):
-    POWEROFF_TIMEOUT = 3.0          #seconds
-    POWEROFF_TIMER_INTERVAL = 0.1   #seconds
-    POWEROFF_LED_VALUES:tuple[int,int,int] = (0, 128, 0) #(r,g,b)
+    POWEROFF_TIMEOUT_KEYPRESSED = 3.0                   #seconds
+    POWEROFF_TIMER_INTERVAL = 0.1                       #seconds
+    POWEROFF_TIMEOUT_OFF = 20.0                         #seconds
+    POWERON_LED_VALUES:tuple[int,int,int] = (0, 64, 0)  #(r,g,b)
+    POWEROFF_LED_VALUES:tuple[int,int,int] = (64, 0, 0) #(r,g,b)
 
     def __init__(self, node_name : str):
         super().__init__(node_name)
@@ -23,8 +26,16 @@ class PowerSwitch(Node):
 
         if is_raspberry_pi():
             robuboard.init_gpios()
-            r, g, b = PowerSwitch.POWEROFF_LED_VALUES
-            robuboard.set_status_led(r,g,b)
+            r_max, g_max, b_max = PowerSwitch.POWERON_LED_VALUES
+            i_max = int(PowerSwitch.POWEROFF_TIMEOUT_KEYPRESSED / PowerSwitch.POWEROFF_TIMER_INTERVAL)
+            for i in range(i_max):
+                intensity = i / i_max
+                r = int(r_max*intensity)
+                g = int(r_max*intensity)
+                b = int(b_max*intensity)
+                robuboard.set_status_led(r,g,b)
+            robuboard.set_status_led(r_max,g_max,b_max)
+
         else:
             msg = "This node can only run on a Raspberry Pi!"
             self.get_logger().error(msg)
@@ -73,15 +84,17 @@ class PowerSwitch(Node):
         elif self._timer_poweroff is not None:
             self._timer_poweroff.destroy()
             self._timer_poweroff = None
-            r, g, b = PowerSwitch.POWEROFF_LED_VALUES
+            r, g, b = PowerSwitch.POWERON_LED_VALUES
             robuboard.set_status_led(r,g,b)
 
         self._pub_powerswitch_rpi.publish(msg)
 
     def _timer_poweroff_cb(self):
         # robuboard.set_status_led()
-        r,g,b = PowerSwitch.POWEROFF_LED_VALUES
-        cnt_poweroff_max = int(PowerSwitch.POWEROFF_TIMEOUT / PowerSwitch.POWEROFF_TIMER_INTERVAL)
+        self._cnt_poweroff += 1
+        
+        r, g, b = PowerSwitch.POWERON_LED_VALUES
+        cnt_poweroff_max = int(PowerSwitch.POWEROFF_TIMEOUT_KEYPRESSED / PowerSwitch.POWEROFF_TIMER_INTERVAL)
         itensity = (1.0 - self._cnt_poweroff / cnt_poweroff_max)
         r = int(r * itensity)
         g = int(g * itensity)
@@ -89,33 +102,50 @@ class PowerSwitch(Node):
 
         robuboard.set_status_led(r, g, b)
 
-        if self._cnt_poweroff == cnt_poweroff_max:
-            self._timer_poweroff.cancel()
+        if self._cnt_poweroff >= cnt_poweroff_max:
+            self._timer_poweroff.destroy()
+            self._timer_poweroff = None
+
             #power off device
-            
             self.get_logger().info("Release the power button to shutdown the robuboard!")
             while robuboard.get_power_switch():
                 time.sleep(0.1)
 
-            r,g,b = PowerSwitch.POWEROFF_LED_VALUES
-            for i in range(20, 0, -1):
+            r, g, b = PowerSwitch.POWEROFF_LED_VALUES
+            
+            shutdown = True
+            self.get_logger().info(f"Shutdown initiated ({int(PowerSwitch.POWEROFF_TIMEOUT_OFF):02d} s)")
+            for i in range(int(PowerSwitch.POWEROFF_TIMEOUT_OFF), 0, -1):
                 if i%2 == 0:
                     robuboard.set_status_led(r, g, b)
                 else:
                     robuboard.set_status_led(0, 0, 0)
-                self.get_logger().info(f"Shutdown in {i:02d} s")
-                time.sleep(1.0)
-            subprocess.run(["sudo", "shutdown", "now"])
 
-        self._cnt_poweroff += 1
-        
+                sys.stdout.write(f"\rShutdown in {i:02d} s")
+                sys.stdout.flush()
+
+                if robuboard.get_power_switch():
+                    shutdown = False
+                    self.get_logger().info(f"Shutdown has been aborted.")
+                    break
+
+                time.sleep(1.0)
+
+            print() #\n
+            time.sleep(PowerSwitch.POWEROFF_TIMEOUT_OFF - int(PowerSwitch.POWEROFF_TIMEOUT_OFF))            
+            
+            if shutdown:
+                subprocess.run(["sudo", "shutdown", "now"])
+            else:
+                r,g,b = PowerSwitch.POWERON_LED_VALUES
+                robuboard.set_status_led(r, g, b)
 
     def _sub_powerswitch_mmt_state_cb(self, msg : ByteMultiArray):
         
         #self.get_logger().info(f"teensy power switch state: {msg.data}")
         vals = [bool(val) for val in msg.data]
         if self._mmt_power_switch_state[1] and not vals[1]: #mmty enables the power-ic to switch on
-            r, g, b = PowerSwitch.POWEROFF_LED_VALUES
+            r, g, b = PowerSwitch.POWERON_LED_VALUES
             try:
                 if not robuboard.IS_ROBUBOARD_V1:
                     command = f"sudo -E env \"ROS_LOCALHOST_ONLY=$ROS_LOCALHOST_ONLY\" \
