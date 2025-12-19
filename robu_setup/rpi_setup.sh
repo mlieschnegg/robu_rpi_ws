@@ -68,7 +68,7 @@ pip install smbus --break-system-packages
 pip install smbus2 --break-system-packages
 pip install smbus3 --break-system-packages
 pip install RPi.GPIO --break-system-packages
-#sudo pip3 install adafruit-circuitpython-vl53l1x
+sudo pip3 install adafruit-circuitpython-vl53l1x --break-system-packages
 
 
 #sudo cp robuboard_power_off_5v.service /etc/systemd/system/robuboard_power_off_5v.service
