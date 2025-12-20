@@ -26,7 +26,10 @@ class PowerSwitch(Node):
 
         if is_raspberry_pi():
             robuboard.init_gpios()
-            robuboard.set_status_led(0,0,0)
+            r,g,b = PowerSwitch.LED_RGB_POWEROFF
+            robuboard.set_status_led(r, g, b)
+            robuboard.start_firmware_teensy()
+            robuboard.set_status_led(0, 0, 0)
             self._cnt_power_led = 0
             self._timer_poweron = self.create_timer(
                 PowerSwitch.TIME_POWER_LED_REFRESH,
