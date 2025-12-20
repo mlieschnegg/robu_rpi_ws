@@ -7,6 +7,9 @@ import sys
 from smbus3 import smbus3 as smbus
 import spidev
 
+import subprocess
+from typing import Optional
+
 try:
     import RPi.GPIO as GPIO
 except:
@@ -79,8 +82,6 @@ def get_power_switch() -> bool:
     return GPIO.input(GPIO_POWER_SWITCH)
 
 def power_off_robuboard():
-    import subprocess
-
     init_gpios()
     enable_5v_supply()
     print("Powering off RobuBoard ...")
@@ -137,17 +138,59 @@ def power_on_teensy():
         bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, val & ~(1 << PCA9536_BIT_TEENSY_RESET))
         bus.close()
 
-def start_firmware_teensy():
-    import subprocess
-
+def start_firmware_teensy(timeout_s: float = 5.0) -> bool:
+    """
+    Starts Teensy firmware via teensy_loader_cli.
+    Returns True on success, False otherwise.
+    """
     init_gpios()
     enable_5v_supply()
-    print("starting firmware on teensy ...")
-    subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-b", "-v"])
+    print("Starting firmware on teensy ...")
+
+    cmd = ["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-b", "-v"]
+
+    try:
+        # check=True -> wirft CalledProcessError bei exitcode != 0
+        # capture_output=True -> stdout/stderr landen in e.stdout/e.stderr
+        completed = subprocess.run(
+            cmd,
+            timeout=timeout_s,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+
+        # Optional: Ausgaben anzeigen, falls du sie brauchst
+        if completed.stdout:
+            print(completed.stdout.strip())
+        if completed.stderr:
+            print(completed.stderr.strip())
+
+        return True
+
+    except subprocess.TimeoutExpired as e:
+        # Prozess wird von subprocess.run bei Timeout beendet (SIGKILL/SIGTERM je nach OS)
+        print(f"ERROR: teensy_loader_cli timed out after {timeout_s:.1f}s.")
+        if e.stdout:
+            print("stdout:", e.stdout.strip())
+        if e.stderr:
+            print("stderr:", e.stderr.strip())
+        return False
+
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR: teensy_loader_cli failed with exit code {e.returncode}.")
+        if e.stdout:
+            print("stdout:", e.stdout.strip())
+        if e.stderr:
+            print("stderr:", e.stderr.strip())
+        return False
+
+    except FileNotFoundError:
+        print("ERROR: teensy_loader_cli not found. Is it installed and in PATH?")
+        return False
 
 
 def start_bootloader_teensy(force=False):
-    import subprocess
     init_gpios()
     enable_5v_supply()
 
@@ -177,7 +220,6 @@ def start_bootloader_teensy(force=False):
         print("invalid state of teensy! Press boot switch!")
 
 def upload_firmware_teensy(firmware_path:str="/home/robu/work/robocup/robocup-teensy/.pio/build/teensymm/firmware.hex"):
-    import subprocess
     init_gpios()
     enable_5v_supply()
     print("uploading firmware to teensy...")
@@ -185,7 +227,6 @@ def upload_firmware_teensy(firmware_path:str="/home/robu/work/robocup/robocup-te
 
 
 def build_firmware_teensy(firmware_path:str="/home/robu/work/robocup/robocup-teensy/"):
-    import subprocess
     init_gpios()
     enable_5v_supply()
     print("building firmware for teensy...")
@@ -193,7 +234,6 @@ def build_firmware_teensy(firmware_path:str="/home/robu/work/robocup/robocup-tee
 
 
 def start_status_led_with_sudo(r:int=255, g:int=255, b:int=51):
-    import subprocess
     command = f"sudo python3 -c 'from robuboard.rpi.robuboard import set_status_led; set_status_led({r}, {g}, {b})'"
     subprocess.run(command, shell=True)
 
