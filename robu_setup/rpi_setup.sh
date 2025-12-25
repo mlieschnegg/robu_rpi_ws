@@ -83,6 +83,14 @@ systemctl --user enable robuboard-powerswitch.service
 systemctl --user start robuboard-powerswitch.service
 
 
+if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard_v0; print(is_robuboard_v0())" | grep -q "True"; then
+    CMD_TEXT="export FASTRTPS_DEFAULT_PROFILES_FILE=/home/robu/work/.robu/config/fastdds.xml"
+    if ! grep -q "$CMD_TEXT" ~/.bashrc; then
+        echo "$CMD_TEXT" >> ~/.bashrc
+    fi
+fi
+
+
 # # Setup Bluetooth
 # sudo apt install -y bluetooth bluez libbluetooth-dev
 

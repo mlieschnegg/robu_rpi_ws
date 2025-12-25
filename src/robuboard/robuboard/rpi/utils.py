@@ -6,9 +6,11 @@ from smbus2 import SMBus, i2c_msg
 from threading import Thread
 import time
 
+global IS_ROBUBOARD_V0
 global IS_ROBUBOARD_V1
 global IS_ROBUBOARD
 
+IS_ROBUBOARD_V0:bool = False
 IS_ROBUBOARD_V1:bool = False
 IS_ROBUBOARD:bool = False
 
@@ -98,17 +100,26 @@ def is_mmteensy():
 
 def is_robuboard():
     global IS_ROBUBOARD_V1
+    global IS_ROBUBOARD_V0
     global IS_ROBUBOARD
 
     IS_ROBUBOARD = is_raspberry_pi() and is_mmteensy()
+    IS_ROBUBOARD_V0 = False
     IS_ROBUBOARD_V1 = False
-    if IS_ROBUBOARD: IS_ROBUBOARD_V1 = i2c_ping(1, 0x41)
+    if IS_ROBUBOARD: 
+        IS_ROBUBOARD_V1 = i2c_ping(1, 0x41)
+        IS_ROBUBOARD_V0 = not IS_ROBUBOARD_V1
     return IS_ROBUBOARD
 
 def is_robuboard_v1():
     global IS_ROBUBOARD_V1
     is_robuboard()
     return IS_ROBUBOARD_V1
+
+def is_robuboard_v0():
+    global IS_ROBUBOARD_V0
+    is_robuboard()
+    return IS_ROBUBOARD_V0
 
 is_robuboard()
 
@@ -117,6 +128,7 @@ if __name__ == '__main__':
     print("Is Raspberry Pi-CM: ", is_raspberry_pi_cm())
     print("Is MMTeensy: ", is_mmteensy())
     print("Is ROBU-Baord: ", is_robuboard())
+    print("Is ROBU-Board V0: ", is_robuboard_v0())
     print("Is ROBU-Board V1: ", is_robuboard_v1())
     print("I2C-Ping: ", i2c_ping(1, 0x41, 0.1))
 
