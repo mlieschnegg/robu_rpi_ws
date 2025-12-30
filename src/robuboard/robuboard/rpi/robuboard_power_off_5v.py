@@ -22,11 +22,11 @@ def main():
     GPIO.setup(GPIO_POWER_REGULATOR_EN, GPIO.OUT, initial=GPIO.HIGH)
 
     GPIO.setup(GPIO_POWER_SWITCH, GPIO.IN)
-        
+
     time.sleep(0.05)
 
     # power off device
-    if GPIO.input(GPIO_POWER_SWITCH):
+    if False and GPIO.input(GPIO_POWER_SWITCH):
         shutdown = False
         while not shutdown:
             print("Release the power button to shut down the RobuBoard.")
