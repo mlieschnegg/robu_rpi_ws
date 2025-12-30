@@ -77,10 +77,10 @@ sudo systemctl daemon-reload
 sudo systemctl enable robuboard_power_off_5v.service
 
 sudo loginctl enable-linger robu
-ln -sf ~/work/.robu/config/service/robuboard-powerswitch.service ~/.config/systemd/user/robuboard-powerswitch.service
+ln -sf ~/work/.robu/config/service/robuboard_powerswitch.service ~/.config/systemd/user/robuboard_powerswitch.service
 systemctl --user daemon-reload
-systemctl --user enable robuboard-powerswitch.service
-systemctl --user start robuboard-powerswitch.service
+systemctl --user enable robuboard_powerswitch.service
+systemctl --user start robuboard_powerswitch.service
 
 
 if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard_v0; print(is_robuboard_v0())" | grep -q "True"; then

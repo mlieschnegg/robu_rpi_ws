@@ -48,6 +48,7 @@ def main():
         time.sleep(TIMEOUT_POWEROFF_OFF - int(TIMEOUT_POWEROFF_OFF))
 
     # Regler abschalten
+    print("POWROFF!")
     GPIO.output(GPIO_POWER_REGULATOR_EN, GPIO.LOW)
     time.sleep(1.0)
     # Kein cleanup() machen, das könnte den Regler wieder einschalten, sobald die Pins wieder
