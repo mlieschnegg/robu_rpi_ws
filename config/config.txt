@@ -75,8 +75,8 @@ dtoverlay=dwc2,dr_mode=host
 dtoverlay=vc4-kms-dsi-7inch
 
 camera_auto_detect=0
-dtoverlay=ov5647,cam0
-dtoverlay=imx708,cam1
+dtoverlay=imx219,cam0
+dtoverlay=imx219,cam1
 
 # enable uart for dynamixel motors on robubaord
 dtoverlay=uart3
@@ -90,14 +90,16 @@ dtoverlay=uart3
 #dtoverlay=disable-bt
 
 [cm5]
+# Enable 5V voltage regulator on robuboard
+gpio=26=op,dh
 dtoverlay=dwc2,dr_mode=host
 
 dtparam=i2c_csi_dsi0=on
 dtparam=i2c_csi_dsi1=on
 camera_auto_detect=0
-dtoverlay=ov5647,cam0
-dtoverlay=imx708,cam1
-dtoverlay=imx708_cam1_ubuntu
+dtoverlay=imx219,cam0
+dtoverlay=imx219,cam1
+#dtoverlay=imx708_cam1_ubuntu
 
 dtoverlay=uart3
 
