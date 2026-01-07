@@ -5,7 +5,7 @@ import rclpy.publisher
 import rclpy.qos
 import rclpy.timer
 from std_msgs.msg import ByteMultiArray, MultiArrayDimension
-from robuboard.rpi.utils import is_raspberry_pi, is_robuboard, is_mmteensy
+from robuboard.rpi.utils import is_raspberry_pi, is_robuboard, is_mmteensy, is_robuboard_v0, is_robuboard_v1
 import robuboard.rpi.robuboard as robuboard
 import subprocess
 import time
@@ -305,6 +305,24 @@ def main_build_upload_firmware_teensy(args=None):
             robuboard.upload_firmware_teensy()
         else:
             mynode.get_logger().error("No Teensy found!")
+    except KeyboardInterrupt:
+        pass
+    mynode.destroy_node()
+    rclpy.shutdown()
+
+def main_is_robuboard(args=None):
+    rclpy.init(args=args)
+    mynode = rclpy.node.Node("is_robuboard")
+    try:
+        if is_robuboard():
+            if is_robuboard_v0():
+                mynode.get_logger().info("RobuBoard Yes/V0")
+            elif is_robuboard_v1():
+                mynode.get_logger().info("RobuBoard Yes/V1")
+            else:
+                mynode.get_logger().info("RobuBoard Yes/VX")
+        else:
+            mynode.get_logger().error("No RobuBoard detected!")
     except KeyboardInterrupt:
         pass
     mynode.destroy_node()

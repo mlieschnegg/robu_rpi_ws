@@ -23,6 +23,7 @@ setup(
     entry_points={
         'console_scripts': [
             "poweroff_robuboard = robuboard.gpioctrl:main_poweroff_robuboard",
+            "is_robuboard = robuboard.gpioctrl:main_is_robuboard",
             "reset_teensy = robuboard.gpioctrl:main_reset_teensy",
             "poweron_teensy = robuboard.gpioctrl:main_reset_teensy",
             "poweroff_teensy = robuboard.gpioctrl:main_poweroff_teensy",
