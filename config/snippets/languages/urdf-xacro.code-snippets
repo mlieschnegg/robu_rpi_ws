@@ -12,7 +12,7 @@
 
   // Robot Tag
   "URDF: Robot Tag": {
-    "prefix": "robot_tag",
+    "prefix": "ros_urdf_robot_tag",
     "body": [
       "<?xml version=\"1.0\"?>",
       "<robot xmlns:xacro=\"http://www.ros.org/wiki/xacro\">",
@@ -23,7 +23,7 @@
 
 	// URDF joint
   "URDF: URDF joint": {
-    "prefix": "urdf_joint",
+    "prefix": "ros_urdf_joint",
     "body": [
     "<joint name=\"joint_name\" type=\"type\">",
     "  <parent link=\"link_name\"/>",
@@ -36,7 +36,7 @@
 
   // URDF link
   "URDF: XACRO LINK": {
-    "prefix": "xacro_link",
+    "prefix": "ros_urdf_xacro_link",
     "body": [
     "<link name=\"link_name\">",
     "  <visual name=\"link_name_visual\">",
@@ -59,7 +59,7 @@
 
   // Basic Inertia
   "URDF: Basic Inertia Macro": {
-    "prefix": "basic_inertia_macro",
+    "prefix": "ros_urfdf_basic_inertia_macro",
     "body": [
     "<xacro:macro name=\"cylinder_inertial\" params=\"name m r h\">",
     "  <inertial name=\"${name}_inertial\">",

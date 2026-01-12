@@ -6,6 +6,17 @@ from smbus2 import SMBus, i2c_msg
 from threading import Thread
 import time
 
+import os
+import select
+import sys
+
+if os.name == 'nt':
+    import msvcrt
+else:
+    import termios
+    import tty
+
+
 global IS_ROBUBOARD_V0
 global IS_ROBUBOARD_V1
 global IS_ROBUBOARD
@@ -120,6 +131,25 @@ def is_robuboard_v0():
     global IS_ROBUBOARD_V0
     is_robuboard()
     return IS_ROBUBOARD_V0
+
+
+
+def get_key():
+    old_settings = termios.tcgetattr(sys.stdin)
+    ts = time.time()
+    key = ''
+    try:
+        tty.setraw(sys.stdin.fileno())
+        while True:
+            rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
+            if rlist:
+                key += os.read(sys.stdin.fileno(), 1).decode("utf-8")
+            else:
+                break
+        return key
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+
 
 is_robuboard()
 
