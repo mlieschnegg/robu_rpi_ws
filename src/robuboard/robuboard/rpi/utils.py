@@ -9,10 +9,9 @@ import time
 import os
 import select
 import sys
+import math
 
-if os.name == 'nt':
-    import msvcrt
-else:
+if os.name != 'nt':
     import termios
     import tty
 
@@ -132,8 +131,6 @@ def is_robuboard_v0():
     is_robuboard()
     return IS_ROBUBOARD_V0
 
-
-
 def get_key():
     old_settings = termios.tcgetattr(sys.stdin)
     ts = time.time()
@@ -150,6 +147,13 @@ def get_key():
     finally:
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
+def wrap_pi(angle_rad: float) -> float:
+    """Winkelnormalisierung auf [-pi, +pi]"""
+    while angle_rad > math.pi:
+        angle_rad -= 2.0 * math.pi
+    while angle_rad < -math.pi:
+        angle_rad += 2.0 * math.pi
+    return angle_rad
 
 is_robuboard()
 
