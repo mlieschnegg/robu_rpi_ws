@@ -12,8 +12,9 @@ from robuboard.rpi.netinfo import get_current_wifi_signal, get_interface, get_ip
 
 def init_display():
     """Initialisiert das OLED-Display."""
-    i2cbus = SMBus(1)
-    return SSD1306(i2cbus)
+    i2cbus = SMBus(0)
+    return SSD1306(i2cbus, address=0x3D)
+    
 
 def draw_info_network(oled:SSD1306, hostname:str, ip:str, ssid:str, signal:int, rid:int=0):
     """Zeichnet die Infos auf dem Display."""
