@@ -6,14 +6,24 @@ import time
 
 from smbus3 import SMBus
 
+from robuboard.rpi.utils import i2c_ping
+
 from ssd1306.common.ssd1306 import SSD1306
 from robuboard.rpi.utils import is_raspberry_pi
 from robuboard.rpi.netinfo import get_current_wifi_signal, get_interface, get_ip_address, get_ssid
 
+
+
 def init_display():
     """Initialisiert das OLED-Display."""
-    i2cbus = SMBus(0)
-    return SSD1306(i2cbus, address=0x3D)
+    ack = i2c_ping(0, 0x3D, 1)
+    print("ACK: ", ack)
+    if i2c_ping(0, 0x3D, 1) == True:
+         i2cbus = SMBus(0)
+         return SSD1306(i2cbus, address=0x3D)
+    else:
+        i2cbus = SMBus(1)
+        return SSD1306(i2cbus, adress=0x3C)
     
 
 def draw_info_network(oled:SSD1306, hostname:str, ip:str, ssid:str, signal:int, rid:int=0):
@@ -46,6 +56,7 @@ class ConnectionDisplayNode(Node):
         self._ssid:str = ""
         self._signal:int = 0
         self._rid:int = -1 #ROS_DOMAIN_ID
+        self._bus = 0
 
         self._initialized:bool = False
 
@@ -58,7 +69,16 @@ class ConnectionDisplayNode(Node):
 
     def _display_init(self):
         if not self._initialized:
-            self._oled:SSD1306 = SSD1306(SMBus(1))
+
+            ack = i2c_ping(0, 0x3D, 1)
+            print("ACK: ", ack)
+            if ack == True:
+                self._bus = 0
+                self._oled:SSD1306 = SSD1306(SMBus(self._bus), address=0x3D)
+            else:
+                self._bus = 1
+                self._oled:SSD1306 = SSD1306(SMBus(self._bus), address=0x3C)
+
             self._oled.set_on(True)
             self._oled.bus.close()
             self._initialized = True
@@ -67,14 +87,14 @@ class ConnectionDisplayNode(Node):
     def display_cls(self):
         if not self._initialized:
             return
-        self._oled.bus.open(1)
+        self._oled.bus.open(self._bus)
         self._oled.cls()
         self._oled.bus.close()
 
     def display_connection_info(self):
         if not self._initialized:
             return
-        self._oled.bus.open(1)
+        self._oled.bus.open(self._bus)
         self._oled.cls()
         draw_info_network(self._oled, self._hostname, self._ip_address, self._ssid, self._signal)
         self._oled.bus.close()  
@@ -109,16 +129,18 @@ class ConnectionDisplayNode(Node):
 
 def main():
     node = None
+    rclpy.init()
+    node = ConnectionDisplayNode("connection_display")
     if not is_raspberry_pi():
         print("Dieser Node ist nur auf einem Raspberry ausführbar!")
         exit()
     try:
-        rclpy.init()
-        try:
-            node = ConnectionDisplayNode("connection_display")
-        except Exception as e:
-            print(f"Fehler beim Erstellen des Nodes: {e}")
-            return
+        # rclpy.init()
+        # try:
+        #     node = ConnectionDisplayNode("connection_display")
+        # except Exception as e:
+        #     print(f"Fehler beim Erstellen des Nodes: {e}")
+        #     return
 
         rclpy.spin(node)
 
