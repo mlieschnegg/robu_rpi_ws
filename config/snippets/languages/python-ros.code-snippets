@@ -414,5 +414,77 @@
       "if __name__ == \"__main__\":",
       "    main()"
     ]
-  }
+  },
+  "Contour Moments Center": {
+        "prefix": "cv_contour_center",
+        "body": [
+            "M = cv2.moments(${1:contour})",
+            "if M['m00'] != 0:",
+            "    cx = int(M['m10'] / M['m00'])",
+            "    cy = int(M['m01'] / M['m00'])",
+            "    ${2:# further processing}"
+        ],
+        "description": "Calculate centroid (cx, cy) from contour moments"
+   },
+   "Contour BoundingBox + Center": {
+        "prefix": "cv_contour_center_box",
+        "body": [
+            "M = cv2.moments(${1:contour})",
+            "if M['m00'] != 0:",
+            "    cx = int(M['m10'] / M['m00'])",
+            "    cy = int(M['m01'] / M['m00'])",
+            "",
+            "    # Bounding box",
+            "    x, y, w, h = cv2.boundingRect(${1:contour})",
+            "",
+            "    # Draw bounding box",
+            "    cv2.rectangle(${2:image}, (x, y), (x + w, y + h), (0, 255, 0), 2)",
+            "",
+            "    # Draw centroid",
+            "    cv2.circle(${2:image}, (cx, cy), 5, (0, 0, 255), -1)",
+            "",
+        ],
+        "description": "Draw bounding box and centroid from contour"
+    },
+    "Contour minAreaRect": {
+        "prefix": "cv_minarearect_center",
+        "body": [
+            "rect = cv2.minAreaRect(${1:contour})  # smallest enclosing rotated rectangle",
+            "(cx, cy), (width, height), angle = rect",
+            "cx, cy = np.int0((cx, cy))",
+            "",
+        ],
+        "description": "Get rotated bounding box (minAreaRect) parameters"
+    },
+    
+    "Draw minAreaRect Box + Center + Angle": {
+        "prefix": "cv_minarearect_center_box",
+        "body": [
+            "rect = cv2.minAreaRect(${1:contour})  # smallest enclosing rotated rectangle",
+            "(cx, cy), (width, height), angle = rect",
+            "cx, cy = np.int0((cx, cy))",
+            "",
+            "box = cv2.boxPoints(rect)  # convert to corner points",
+            "box = np.int0(box)",
+            "",
+            "# Draw rotated bounding box",
+            "cv2.drawContours(${2:frame}, [box], 0, (0, 0, 255), 2)",
+            "",
+            "# Draw centroid",
+            "cv2.circle(${2:frame}, (cx, cy), 5, (255, 0, 0), -1)",
+            "",
+            "# Show angle text",
+            "cv2.putText(",
+            "    ${2:frame},",
+            "    f\"Angle: {angle:.1f}\",",
+            "    (cx + 10, cy - 10),",
+            "    cv2.FONT_HERSHEY_SIMPLEX,",
+            "    0.5,",
+            "    (255, 0, 0),",
+            "    2",
+            ")",
+            "",
+        ],
+        "description": "Draw rotated bounding box with centroid and angle text"
+    }
 }
