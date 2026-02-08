@@ -10,6 +10,7 @@ DIR_ROBOCUP_ROS="$HOME/work/robocup/robocup-ros"
 DIR_ROBOCUP_TEENSY="$HOME/work/robocup/robocup-teensy"
 DIR_ROBOCUP_GUI="$HOME/work/robocup/robocup-gui"
 
+#clean temporary files
 rm -rf ~/.cache/vscode-cpptools/*
 rm -rf ~/.cache/pip/*
 
