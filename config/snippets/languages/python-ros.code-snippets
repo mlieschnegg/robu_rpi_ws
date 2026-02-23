@@ -269,9 +269,11 @@
     "description": "Vorlage für einen ROS2-State (Datei im states-Ordner)",
     "body": [
       "from __future__ import annotations",
-      "# Den nachfolgenden Import eventuell anpassen!",
+      "from typing import TYPE_CHECKING",
       "from ..state_machine import State",
       "",
+      "if TYPE_CHECKING:",
+      "    pass"
       "",
       "class ${1:MyNewState}(State):",
       "    \"\"\"${2:Beschreibung des States}\"\"\"",
@@ -284,10 +286,6 @@
       "",
       "    def tick(self, node) -> str | None:",
       "        node.get_logger().info(\"TICK ${3:MY_NEW_STATE}\")",
-      "",
-      "        # TODO: Übergangsbedingung anpassen",
-      "        if self._counter > 10:",
-      "            return \"${4:NEXT_STATE}\"",
       "",
       "        return None",
       "",
