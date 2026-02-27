@@ -254,6 +254,32 @@ def set_status_led(r:int=50, g:int=10, b:int=0, w:int=0):
         neopixel_spi_write(spi, [[g,r,b]])
         #spi.close()
 
+def set_i2c_power(enabled:bool=True):
+    # I2C Einstellungen
+    port = 0          
+    MCP23017_ADDR = 0x21
+
+    # MCP23017 Register (Bank 0)
+    IODIRA = 0x00
+    GPIOA  = 0x12
+
+    with SMBus(port) as bus:
+        # 1 Aktuellen IODIRA-Wert lesen
+        iodira = bus.read_byte_data(MCP23017_ADDR, IODIRA)
+        
+        # 2 Bit 7 (GPA7) auf 0 setzen → Ausgang
+        iodira &= ~(1 << 7)
+        bus.write_byte_data(MCP23017_ADDR, IODIRA, iodira)
+
+        # 3 Aktuellen GPIOA-Wert lesen
+        gpioa = bus.read_byte_data(MCP23017_ADDR, GPIOA)
+
+        # 4 Bit 7 auf 1 setzen → HIGH
+        gpioa |= (1 << 7)
+        bus.write_byte_data(MCP23017_ADDR, GPIOA, gpioa)
+
+    print("GPA7 ist jetzt als Ausgang konfiguriert und auf HIGH gesetzt.")
+
 if __name__ == '__main__':
     # start_status_led_with_sudo()
     print(sys.argv)

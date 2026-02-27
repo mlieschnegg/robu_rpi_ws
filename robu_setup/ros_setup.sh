@@ -85,6 +85,8 @@ sudo apt install -y ros-${ROS_DISTRO}-twist-mux
 sudo apt install -y ros-${ROS_DISTRO}-rqt-image-view
 sudo apt install -y ros-${ROS_DISTRO}-joy 
 sudo apt install -y joystick
+sudo apt install -y ros-${ROS_DISTRO}-rmw-cyclonedds-cpp
+
 #sudo apt install -y ros-${ROS_DISTRO}-gazebo-ros-pkgs
 
 if ! is_raspberry_pi; then #muss für den raspberry extra gebaut werden!!! -> rpi_camera_setup.sh

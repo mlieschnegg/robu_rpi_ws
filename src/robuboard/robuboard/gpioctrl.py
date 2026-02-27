@@ -5,7 +5,7 @@ import rclpy.publisher
 import rclpy.qos
 import rclpy.timer
 from std_msgs.msg import ByteMultiArray, MultiArrayDimension
-from robuboard.rpi.utils import is_raspberry_pi, is_robuboard, is_mmteensy, is_robuboard_v0, is_robuboard_v1
+from robuboard.rpi.utils import i2c_ping, is_raspberry_pi, is_robuboard, is_mmteensy, is_robuboard_v0, is_robuboard_v1
 import robuboard.rpi.robuboard as robuboard
 import subprocess
 import time
@@ -34,6 +34,9 @@ class PowerSwitch(Node):
             self._timer_poweron = self.create_timer(
                 PowerSwitch.TIME_POWER_LED_REFRESH,
                 self._timer_poweron_cb)
+            
+            if i2c_ping(0, 0x21):
+                robuboard.set_i2c_power(True)
         else:
             msg = "This node can only run on a Raspberry Pi!"
             self.get_logger().error(msg)
@@ -54,7 +57,6 @@ class PowerSwitch(Node):
                                                              "robuboard/mmt/powerswitch_state",
                                                              self._sub_powerswitch_mmt_state_cb,
                                                              rclpy.qos.QoSProfile(depth=10))
-    
         self._timer_poweroff : rclpy.timer.Timer | None = None
 
     def _timer_poweron_cb(self):
