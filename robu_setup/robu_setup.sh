@@ -54,8 +54,6 @@ pip install pillow --break-system-packages
 if is_raspberry_pi; then
     pip install smbus2 --break-system-packages
     pip install RPi.GPIO --break-system-packages
-    pip install ST7789 --break-system-packages
-    pip install numpy --break-system-packages
     pip install git+https://github.com/sparkfun/Qwiic_VL53L5CX_Py.git --break-system-packages
 fi
 
