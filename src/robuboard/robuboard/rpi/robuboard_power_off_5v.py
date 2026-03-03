@@ -7,7 +7,7 @@ import sys
 GPIO_POWER_REGULATOR_EN = 26  # BCM GPIO26
 GPIO_POWER_SWITCH = 25
 
-TIMEOUT_POWEROFF_OFF = 20.0
+TIMEOUT_POWEROFF_OFF = 10.0
 
 def main():
     # Datei-Systeme flushen (extra Sicherheit)
