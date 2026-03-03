@@ -86,4 +86,5 @@ fi
 
 sudo cp $ROBU_RPI_WS/config/config.txt /boot/firmware/config.txt
 sudo rm -rf ~/work/robu_lab*/
+sync
 

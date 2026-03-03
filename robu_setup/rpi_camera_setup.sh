@@ -26,7 +26,7 @@ if is_raspberry_pi; then
     git clone https://github.com/raspberrypi/libcamera.git
     cd libcamera
 
-    meson setup build --buildtype=release -Dpipelines=rpi/vc4,rpi/pisp -Dipas=rpi/vc4,rpi/pisp -Dv4l2=true -Dgstreamer=enabled -Dtest=false -Dlc-compliance=disabled -Dcam=disabled -Dqcam=disabled -Ddocumentation=disabled -Dpycamera=enabled
+    meson setup build --buildtype=release -Dpipelines=rpi/vc4,rpi/pisp -Dipas=rpi/vc4,rpi/pisp -Dv4l2=enabled -Dgstreamer=enabled -Dtest=false -Dlc-compliance=disabled -Dcam=disabled -Dqcam=disabled -Ddocumentation=disabled -Dpycamera=enabled
     ninja -C build -j 1
     sudo ninja -C build install
     sudo ldconfig
@@ -79,7 +79,7 @@ if is_raspberry_pi; then
     git clone https://github.com/raspberrypi/rpicam-apps.git
     cd rpicam-apps
 
-    meson setup build -Denable_libav=enabled -Denable_drm=enabled -Denable_egl=enabled -Denable_qt=enabled -Denable_opencv=enabled -Denable_tflite=disabled
+    meson setup build -Denable_libav=disabled -Denable_drm=enabled -Denable_egl=enabled -Denable_qt=enabled -Denable_opencv=enabled -Denable_tflite=disabled
     meson compile -C build -j 1
 
     sudo meson install -C build
