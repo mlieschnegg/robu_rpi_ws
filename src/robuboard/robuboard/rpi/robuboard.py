@@ -264,7 +264,7 @@ def set_i2c_power(enabled:bool=True):
     GPIOA  = 0x12
     OLATA = 0x14
 
-    with SMBus(port) as bus:
+    with smbus.SMBus(port) as bus:
         # 1 Aktuellen IODIRA-Wert lesen
         iodira = bus.read_byte_data(MCP23017_ADDR, IODIRA)
         
