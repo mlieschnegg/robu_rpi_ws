@@ -84,5 +84,6 @@ if /usr/bin/python3 -c "from robuboard.rpi.utils import is_raspberry_pi; print(i
 #    /usr/bin/python3 $ROBU_RPI_WS/autostart/ros_launcher.py
 fi
 
+sudo cp $ROBU_RPI_WS/config/config.txt /boot/firmware/config.txt
 sudo rm -rf ~/work/robu_lab*/
 

@@ -96,6 +96,7 @@ if is_raspberry_pi; then
     git clone https://github.com/anholt/libepoxy.git
     cd libepoxy
     meson setup build
+    cd build
     ninja -j 1
     sudo ninja install
 
@@ -111,6 +112,15 @@ if is_raspberry_pi; then
     # ninja -j 1
     # sudo meson install -C build
     # sudo ldconfig
+
+    #######################################################
+    # create symbolic links for rpicam-apps
+    #######################################################
+
+    # sudo ln -s /usr/local/bin/libcamera-hello  /usr/local/bin/rpicam-hello
+    # sudo ln -s /usr/local/bin/libcamera-vid    /usr/local/bin/rpicam-vid
+    # sudo ln -s /usr/local/bin/libcamera-still  /usr/local/bin/rpicam-still
+    # sudo ln -s /usr/local/bin/libcamera-raw    /usr/local/bin/rpicam-raw
 
     ####################################################
     # gstreamer
