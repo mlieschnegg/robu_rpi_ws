@@ -256,7 +256,6 @@ def set_status_led(r:int=50, g:int=10, b:int=0, w:int=0):
 
 def set_i2c_power(enabled:bool=True):
     # I2C Einstellungen
-    def set_gpa7_low():
     BUS = 0
     ADDR = 0x21
 
