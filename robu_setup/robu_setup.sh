@@ -34,6 +34,9 @@ sudo apt install -y python3-pip
 sudo apt install -y python3-opencv
 sudo apt install -y v4l-utils
 sudo apt-get install -y p7zip-full
+sudo apt install -y python3-numpy 
+sudo apt install -y python3-dev
+
 #sudo apt install libcamera-apps
 
 #compiler for python
@@ -49,6 +52,7 @@ pip install opencv-python --break-system-packages
 #Bekomme sonst Fehlermeldung beim ros2-jazzy-tf-transformations Paket -> wahrscheinlich geht dann opencv nicht :-(
 pip install "numpy<2.0"  --break-system-packages
 pip install pillow --break-system-packages
+
 #pip install dynamixel-sdk --break-system-packages
 
 if is_raspberry_pi; then
