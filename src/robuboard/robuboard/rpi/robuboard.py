@@ -256,20 +256,28 @@ def set_status_led(r:int=50, g:int=10, b:int=0, w:int=0):
 
 def set_i2c_power(enabled:bool=True):
     # I2C Einstellungen
-    BUS = 0
-    ADDR = 0x21
+    port = 0          
+    MCP23017_ADDR = 0x21
 
+    # MCP23017 Register (Bank 0)
     IODIRA = 0x00
-    OLATA  = 0x14
+    GPIOA  = 0x12
+    OLATA = 0x14
 
-    bus = smbus.SMBus(BUS)
+    with smbus.SMBus(port) as bus:
+        # 1 Aktuellen IODIRA-Wert lesen
+        iodira = bus.read_byte_data(MCP23017_ADDR, IODIRA)
+        
+        # 2 Bit 7 (GPA7) auf 0 setzen → Ausgang
+        iodira &= ~(1 << 7)
+        bus.write_byte_data(MCP23017_ADDR, IODIRA, iodira)
 
-    # GPA7 Output
-    bus.write_byte_data(ADDR, IODIRA, 0x7F)
+        # 3 Aktuellen GPIOA-Wert lesen
+        gpioa = bus.read_byte_data(MCP23017_ADDR, GPIOA)
 
-    # GPA7 LOW
-    bus.write_byte_data(ADDR, OLATA, 0x00)
-
+        # 4 Bit 7 auf 1 setzen → HIGH
+        gpioa &= ~(1 << 7)
+        bus.write_byte_data(MCP23017_ADDR, GPIOA, gpioa)
 
 if __name__ == '__main__':
     # start_status_led_with_sudo()
