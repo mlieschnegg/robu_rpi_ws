@@ -40,7 +40,7 @@ def main_dxl_scan(args=None):
 def main_dxl_set_id(args=None):
     rclpy.init(args=args)
     mynode:Node = Node("dxl_set_id")
-    mynode.declare_parameters("", [("uart_name", "/dev/ttyACM0"), ("baudrate", 57600), ("id", 254), ("new_id", 1)])
+    mynode.declare_parameters("", [("uart_name", ""), ("baudrate", 57600), ("id", 254), ("new_id", 1)])
     try:
         mynode.get_logger().info("Setting Dynamixel motor ID!")
         uart_name = mynode.get_parameter("uart_name").get_parameter_value().string_value
