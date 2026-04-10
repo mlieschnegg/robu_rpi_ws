@@ -3,9 +3,11 @@
 echo "Installation von ROS"
 
 source "rpi_detect.sh"
+if ! is_raspberry_pi; then
+  cd ~/work/ws_turtlebot/
+fi
 
-cd ~/work/ws_turtlebot/
-# Update and upgrade system
+  # Update and upgrade system
 sudo apt update && sudo apt upgrade -y
 
 # Set locale
@@ -47,6 +49,7 @@ if [ "$ubuntu_version" = "22.04" ]; then
     if ! grep -q "$CMD_TEXT" ~/.bashrc; then
         echo "$CMD_TEXT" >> ~/.bashrc
     fi
+
 elif [ "$ubuntu_version" = "24.04" ]; then
     echo "Ihre Ubuntu-Version ist: $ubuntu_version, es wird die ROS-Distro Jazzy installiert!"
     
@@ -83,15 +86,16 @@ sudo apt install -y ros-${ROS_DISTRO}-rosbridge-server
 sudo apt install -y ros-${ROS_DISTRO}-joint-state-publisher-gui
 sudo apt install -y ros-${ROS_DISTRO}-twist-mux
 sudo apt install -y ros-${ROS_DISTRO}-rqt-image-view
-sudo apt install -y ros-${ROS_DISTRO}-joy 
+sudo apt install -y ros-${ROS_DISTRO}-joy
 sudo apt install -y joystick
 sudo apt install -y ros-${ROS_DISTRO}-rmw-cyclonedds-cpp
 
 #sudo apt install -y ros-${ROS_DISTRO}-gazebo-ros-pkgs
 
 if ! is_raspberry_pi; then #muss für den raspberry extra gebaut werden!!! -> rpi_camera_setup.sh
-    sudo apt install -y ros-${ROS_DISTRO}-camera-ros
+  sudo apt install -y ros-${ROS_DISTRO}-camera-ros
 fi
 
-
-. turtlebot_setup.sh
+if ! is_raspberry_pi; then
+  . turtlebot_setup.sh
+fi
