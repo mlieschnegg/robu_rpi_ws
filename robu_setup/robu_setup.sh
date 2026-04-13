@@ -2,82 +2,58 @@
 
 #set -e
 
-echo "Starting Setup for RpackagesOBU"
+echo "Starting setup for ROBU"
 
 source "rpi_detect.sh"
 
-mkdir -p ~/work
+WORK_DIR="$HOME/work"
+VENV_DIR="$WORK_DIR/.venvs/robu"
 
-sudo sed -i -E 's/^XKBLAYOUT="[^"]*"/XKBLAYOUT="de"/' /etc/default/keyboard
+setup_keyboard() {
+    sudo sed -i -E 's/^XKBLAYOUT="[^"]*"/XKBLAYOUT="de"/' /etc/default/keyboard
+}
 
-#######################################
-# Services
-#######################################
+install_base_packages() {
+    sudo apt install -y openssh-server
+    sudo systemctl enable --now ssh
 
-# SSH-Setup
-sudo apt install -y openssh-server
-sudo systemctl enable --now ssh
-# systemctl status ssh --no-pager
+    sudo apt install -y git btop tmux neovim ncdu
+    sudo apt install -y python3-pip python3-venv python3-opencv python3-numpy python3-dev
+    sudo apt install -y v4l-utils p7zip-full curl software-properties-common
 
-# Samba-Setup
-#. samba_setup.sh
+    if ! is_raspberry_pi; then
+        sudo apt install -y terminator rpi-imager
+    fi
+}
 
-###########################################################
-# apt
-##########################################################
+setup_python_venv() {
+    mkdir -p "$WORK_DIR/.venvs"
 
-# Install additional utilities
-sudo apt install -y git btop tmux neovim 
-sudo apt install -y ncdu 
-sudo apt install -y python3-pip
-sudo apt install -y python3-opencv
-sudo apt install -y v4l-utils
-sudo apt-get install -y p7zip-full
-sudo apt install -y python3-numpy
-sudo apt install -y python3-dev
+    if [ ! -d "$VENV_DIR" ]; then
+        python3 -m venv --system-site-packages "$VENV_DIR"
+    fi
 
-if ! is_raspberry_pi; then
-  sudo apt install terminator rpi-imager
-fi
+    source "$VENV_DIR/bin/activate"
+    python -m pip install --upgrade pip setuptools wheel
+    python -m pip install pillow rpi_ws281x
 
-#sudo apt install libcamera-apps
+    if is_raspberry_pi; then
+        python -m pip install smbus2 RPi.GPIO
+        python -m pip install git+https://github.com/sparkfun/Qwiic_VL53L5CX_Py.git
+    fi
+}
 
-#compiler for python
-/bin/bash -c "$(curl -fsSL https://exaloop.io/install.sh)"
+install_pc_tools() {
+    if is_raspberry_pi; then
+        return
+    fi
 
-############################################################
-# pip
-############################################################
-#Gehe nur am Raspberry, wir können jedoch die Autovervollständigung für eine Entwicklung am PC nutzen
-pip install rpi_ws281x --break-system-packages
-#Erst nach dieser Installation geht die Autovervollständiguung in VSC
-pip install opencv-python --break-system-packages
-#Bekomme sonst Fehlermeldung beim ros2-jazzy-tf-transformations Paket -> wahrscheinlich geht dann opencv nicht :-(
-pip install "numpy<2.0" --break-system-packages
-pip install pillow --break-system-packages
-
-#pip install dynamixel-sdk --break-system-packages
-
-if is_raspberry_pi; then
-  pip install smbus2 --break-system-packages
-  pip install RPi.GPIO --break-system-packages
-  pip install git+https://github.com/sparkfun/Qwiic_VL53L5CX_Py.git --break-system-packages
-fi
-
-#############################################################
-# PC-Only
-#############################################################
-if ! is_raspberry_pi; then
-#    sudo apt install -y blender kde-plasma-desktop
     sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
-    sudo apt install --install-recommends kicad
+    sudo apt install -y --install-recommends kicad
 
-    # Install snap packages
-    #------------------------------
     sudo snap install gimp
-    #VSCode with
     sudo snap install code --classic
-    # Extensions for VS-Code
+
     code --install-extension platformio.platformio-ide
     code --install-extension ms-vscode-remote.remote-ssh
     code --install-extension ms-vscode-remote.remote-ssh-edit
@@ -87,79 +63,73 @@ if ! is_raspberry_pi; then
     code --install-extension ranch-hand-robotics.urdf-editor
     code --install-extension pdconsec.vscode-print
 
-    #Symlinks für VSC erstellen (Code Snippets)
-    . link_vsc_snippets
+    . ./link_vsc_snippets
 
-    #Desktop Icons kopieren
-    cp -r ~/work/.robu/config/desktop/*.* $HOME/Desktop
-fi
+    mkdir -p "$HOME/Desktop"
+    cp -r "$HOME/work/.robu/config/desktop/"*.* "$HOME/Desktop" 2>/dev/null || true
+}
 
-. git_setup.sh
+install_exaloop() {
+    /bin/bash -c "$(curl -fsSL https://exaloop.io/install.sh)"
+}
 
-. ros_setup.sh
+run_sub_setup_scripts() {
+    . ./git_setup.sh
+    . ./ros_setup.sh
+    . ./microros_setup.sh
 
-. microros_setup.sh
+    if ! is_raspberry_pi && [ -f "./machine_learning_setup.sh" ]; then
+        . ./machine_learning_setup.sh
+    fi
+}
 
-if ! is_raspberry_pi; then
-  . machine_learning_setup.sh
-fi
-####################################################################
-# gnome-extensions
-####################################################################
-# gnome-extensions list
-# gnome-shell --version
-# gnome-extensions info gnome-extension-all-ip-addresses@havekes.eu
-# TODO: gnome-extensions install config/extensions/gnome-extension-all-ip-addresseshavekes.eu.v12.shell-extension.zip
+setup_shell_and_permissions() {
+    echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee "/etc/sudoers.d/$USER" > /dev/null
 
-####################################################################
-# OS-Settings
-####################################################################
+    mkdir -p "$HOME/.colcon"
+    ln -sf "$HOME/work/.robu/config/.colcon/defaults.yaml" "$HOME/.colcon/defaults.yaml"
 
-# deactivate password for sudo
-echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER
+    sudo adduser "$USER" dialout || true
+    sudo adduser "$USER" video || true
+    sudo adduser "$USER" kmem || true
+}
 
-# TODO
-#sudo hostnamectl set-hostname robu-desktop
-#sudo nano /etc/hosts
+apply_runtime_device_permissions() {
+    if ! is_raspberry_pi; then
+        return
+    fi
 
-# Symlinks für colcon erstellen
-mkdir -p ~/.colcon
-ln -sf ~/work/.robu/config/.colcon/defaults.yaml ~/.colcon/defaults.yaml
+    [ -e /dev/ttyACM0 ] && sudo chmod a+rw /dev/ttyACM0
+    [ -e /dev/gpiomem ] && sudo chmod a+rw /dev/gpiomem
+    [ -e /dev/i2c-1 ] && sudo chmod a+rw /dev/i2c-1
+    [ -e /dev/video0 ] && sudo chmod a+rw /dev/video0
+    [ -e /dev/ttyUSB0 ] && sudo chmod a+rw /dev/ttyUSB0
+    [ -e /dev/mem ] && sudo chmod a+rw /dev/mem
+}
 
-#Automatischen Login nach dem Booten bei der Desktop-Version aktivieren
-# TODO
-# sudo nano /etc/gdm3/custom.conf
-# [daemon]
-# AutomaticLoginEnable=true
-# AutomaticLogin=dein_benutzername
+install_pishrink() {
+    cd "$WORK_DIR" || exit 1
+    wget -O pishrink.sh https://raw.githubusercontent.com/Drewsif/PiShrink/master/pishrink.sh
+    sudo install -m 755 pishrink.sh /usr/local/bin/pishrink.sh
+    rm -f pishrink.sh
+}
 
-#Benutzer zur Gruppe dialout hinzufügen (z.B. serielle Schnittstelle)
-sudo adduser $USER dialout
-sudo adduser $USER video
-sudo adduser $USER kmem
+main() {
+    mkdir -p "$WORK_DIR"
 
-###################################################################
-# raspberry config
-###################################################################
-if is_raspberry_pi; then
+    setup_keyboard
+    install_base_packages
+    install_exaloop
+    setup_python_venv
+    install_pc_tools
+    run_sub_setup_scripts
+    setup_shell_and_permissions
+    apply_runtime_device_permissions
+    install_pishrink
 
-    #sudo adduser $USER gpio -> gibt es eventuell nicht, Gruppe erstellen plus udev rule hinzufügen
-    sudo chown root:$USER /dev/gpiomem
+    echo "Setup completed successfully!"
+    echo "Python venv: $VENV_DIR"
+    echo "Activate with: source $VENV_DIR/bin/activate"
+}
 
-    #Zugriffsrechte hinzufügen (gehen nach dem Neustart verloren)
-    sudo chmod a+rw /dev/ttyACM0
-    sudo chmod a+rw /dev/gpiomem
-    sudo chmod a+rw /dev/i2c-1
-    sudo chmod a+rw /dev/video0
-    sudo chmod a+rw /dev/ttyUSB0
-    sudo chmod a+rw /dev/mem
-
-fi
-
-#pishrink installieren
-cd ~/work/
-wget https://raw.githubusercontent.com/Drewsif/PiShrink/master/pishrink.sh
-sudo chmod +x pishrink.sh
-sudo mv pishrink.sh /usr/local/bin
-
-echo "Setup completed successfully!"
+main "$@"

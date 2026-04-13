@@ -1,92 +1,135 @@
+#!/bin/bash
 
-echo "Installation von git und richten Repositories"
-echo "Bitte warten..."
+#set -e
 
-export ROBU_RPI_WS=~/work/.robu
-export ROBOCUP_DIR=~/work/robocup
-export ROBOCUP_ROS_WS=$ROBOCUP_DIR/robocup-ros
-export ROBOCUP_TEENSY_WS=$ROBOCUP_DIR/robocup-teensy
-export ROBOCUP_GUI_WS=$ROBOCUP_DIR/robocup-gui
-export PLAYGROUND_TEENSY_WS=$ROBOCUP_DIR/playground-teensy
+echo "Installing git and cloning repositories"
+echo "Please wait..."
 
-mkdir -p ~/work
+source "rpi_detect.sh"
 
-sudo apt install -y git gh
+ROBU_RPI_WS="$HOME/work/.robu"
+ROBOCUP_DIR="$HOME/work/robocup"
+ROBOCUP_ROS_WS="$ROBOCUP_DIR/robocup-ros"
+ROBOCUP_TEENSY_WS="$ROBOCUP_DIR/robocup-teensy"
+ROBOCUP_GUI_WS="$ROBOCUP_DIR/robocup-gui"
+PLAYGROUND_TEENSY_WS="$ROBOCUP_DIR/playground-teensy"
 
-if [[ ! -d "$ROBU_RPI_WS" ]]; then
-    git clone https://github.com/mlieschnegg/robu_rpi_ws ~/work/.robu
-fi
+append_once() {
+    local line="$1"
+    if ! grep -Fqx "$line" "$HOME/.bashrc" 2>/dev/null; then
+        echo "$line" >> "$HOME/.bashrc"
+    fi
+}
 
+clone_if_missing() {
+    local repo_url="$1"
+    local target_dir="$2"
 
-mkdir -p ~/.config/autostart
-cat > ~/.config/autostart/robu.desktop <<EOF
+    if [ ! -d "$target_dir/.git" ]; then
+        git clone "$repo_url" "$target_dir"
+    fi
+}
+
+setup_autostart() {
+    mkdir -p "$HOME/.config/autostart"
+
+    cat > "$HOME/.config/autostart/robu.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=ROBU-RPI-Autostart
 Comment=Startet mein Skript beim Anmelden
 Exec=bash -c "$HOME/work/.robu/autostart/autostart.sh"
 Terminal=false
-#OnlyShowIn=KDE;
 X-KDE-Autostart-enabled=true
 X-GNOME-Autostart-enabled=true
 StartupNotify=false
 EOF
+}
 
-if ! grep -q "source $HOME/work/.robu/install/setup.bash" ~/.bashrc; then
-    echo "source $HOME/work/.robu/install/setup.bash" >> ~/.bashrc
-fi
+ensure_github_auth() {
+    if gh auth status &>/dev/null; then
+        return
+    fi
 
-if ! gh auth status &>/dev/null; then
-    echo "GitHub authentication required. Please log in using 'gh auth login'."
-    exit 1
-fi
+    if [ -f "$HOME/.gh_token" ]; then
+        gh auth login --with-token < "$HOME/.gh_token"
+    else
+        echo "GitHub authentication required. Run: gh auth login"
+        exit 1
+    fi
+}
 
-%gh auth login --with-token < ~/.gh_token
+install_packages() {
+    sudo apt install -y git gh
+}
 
-if is_raspberry_pi; then
-    # Zum Kompilieren des Teensy Codes wird g++-13 benötigt
-    # Ich musste dieses erneut installieren, da sonst Abhängigkeit map, etc. fehlten
-    sudo apt install -y --reinstall libstdc++-13-dev g++-13
-fi
+clone_repositories() {
+    mkdir -p "$HOME/work" "$ROBOCUP_DIR"
 
-mkdir -p $ROBOCUP_DIR
+    clone_if_missing https://github.com/mlieschnegg/robu_rpi_ws "$ROBU_RPI_WS"
+    clone_if_missing https://github.com/mlieschnegg/robocup24-ros "$ROBOCUP_ROS_WS"
+    clone_if_missing https://github.com/mlieschnegg/robocup24-teensy "$ROBOCUP_TEENSY_WS"
+    clone_if_missing https://github.com/mlieschnegg/robocup24-gui "$ROBOCUP_GUI_WS"
+    clone_if_missing https://github.com/mlieschnegg/teensy "$PLAYGROUND_TEENSY_WS"
+}
 
-if [[ ! -d "$ROBOCUP_ROS_WS" ]]; then
-    git clone https://github.com/mlieschnegg/robocup24-ros ROBOCUP_ROS_WS
-fi
+setup_shell_environment() {
+    append_once 'source "$HOME/work/.robu/install/setup.bash"'
+}
 
-if [[ ! -d "$ROBOCUP_TEENSY_WS" ]]; then
-    git clone https://github.com/mlieschnegg/robocup24-teensy ROBOCUP_TEENSY_WS
-fi
+install_raspberry_pi_compiler_fix() {
+    if is_raspberry_pi; then
+        sudo apt install -y --reinstall libstdc++-13-dev g++-13
+    fi
+}
 
-if [[ ! -d "$ROBOCUP_GUI_WS" ]]; then
-    git clone https://github.com/mlieschnegg/robocup24-gui ROBOCUP_GUI_WS
-fi
+build_ros_workspace_if_possible() {
+    if [ ! -d "$ROBOCUP_ROS_WS" ]; then
+        return
+    fi
 
-if [[ ! -d "$PLAYGROUND_TEENSY_WS" ]]; then
-    git clone https://github.com/mlieschnegg/teensy PLAYGROUND_TEENSY_WS
-fi
+    if ! command -v colcon >/dev/null 2>&1; then
+        echo "Skipping ROS workspace build: colcon not found. Run ros_setup.sh first."
+        return
+    fi
 
-cd $ROBOCUP_ROS_WS
-colcon build
-source install/local_setup.bash
+    if [ -z "${ROS_DISTRO:-}" ] || [ ! -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]; then
+        echo "Skipping ROS workspace build: ROS environment is not active."
+        return
+    fi
 
-cd $ROBOCUP_TEENSY_WS
-pio run
+    # shellcheck disable=SC1090
+    source "/opt/ros/${ROS_DISTRO}/setup.bash"
+    cd "$ROBOCUP_ROS_WS" || exit 1
+    colcon build
+    source install/local_setup.bash
+}
 
+build_teensy_workspace_if_possible() {
+    if [ ! -d "$ROBOCUP_TEENSY_WS" ]; then
+        return
+    fi
 
-# # Rust Setup - https://github.com/ros2-rust/ros2_rust
-# sudo apt install -y git libclang-dev python3-pip python3-vcstool
-# sudo apt install cargo
-# pip install git+https://github.com/colcon/colcon-cargo.git
-# pip install git+https://github.com/colcon/colcon-ros-cargo.git
+    if ! command -v pio >/dev/null 2>&1; then
+        echo "Skipping Teensy build: pio not found. Install PlatformIO first."
+        return
+    fi
 
-# cd $ROBOCUP_GUI_WS
-# rm -rf src/ros2_rust
-# mkdir -p src
-# git clone https://github.com/ros2-rust/ros2_rust.git src/ros2_rust
-# vcs import src < src/ros2_rust/ros2_rust_${ROS_DISTRO}.repos
-# . /opt/ros/${ROS_DISTRO}/setup.sh
-# colcon build
+    cd "$ROBOCUP_TEENSY_WS" || exit 1
+    pio run
+}
 
+main() {
+    install_packages
+    clone_repositories
+    setup_autostart
+    setup_shell_environment
+    ensure_github_auth
+    install_raspberry_pi_compiler_fix
+    build_ros_workspace_if_possible
+    build_teensy_workspace_if_possible
 
+    echo "Git setup completed."
+}
+
+main "$@"

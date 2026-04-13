@@ -1,69 +1,123 @@
 #!/bin/bash
 
-echo "Installation von microros"
+#set -e
+
+echo "Installing micro-ROS"
 
 source "rpi_detect.sh"
 
-# https://micro.ros.org/docs/tutorials/core/teensy_with_arduino/
+WORK_DIR="$HOME/work"
+MICROROS_WS_PATH="$WORK_DIR/microros_ws"
 
-# Source the ROS 2 installation
-source /opt/ros/$ROS_DISTRO/setup.bash
+append_once() {
+    local line="$1"
+    if ! grep -Fqx "$line" "$HOME/.bashrc" 2>/dev/null; then
+        echo "$line" >> "$HOME/.bashrc"
+    fi
+}
 
-MICROROS_WS_PATH=~/work/microros_ws
-cd ~/work/
+require_ros() {
+    if [ -z "${ROS_DISTRO:-}" ]; then
+        echo "ROS_DISTRO is not set. Run ros_setup.sh first, then open a new shell or source /opt/ros/<distro>/setup.bash."
+        exit 1
+    fi
 
-# Create a workspace and download the micro-ROS tools
-mkdir -p $MICROROS_WS_PATH
-cd $MICROROS_WS_PATH
-git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup
-# Update dependencies using rosdep
-sudo apt update
-sudo rosdep init
-rosdep update
-rosdep install --from-paths src --ignore-src -y
-# Install pip
-sudo apt-get install -y python3-pip
+    if [ ! -f "/opt/ros/$ROS_DISTRO/setup.bash" ]; then
+        echo "Missing ROS installation: /opt/ros/$ROS_DISTRO/setup.bash"
+        exit 1
+    fi
+}
 
-# Build micro-ROS tools and source them
-colcon build
-source install/local_setup.bash
+require_commands() {
+    local missing=0
+    for cmd in git colcon rosdep ros2; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            echo "Missing required command: $cmd"
+            missing=1
+        fi
+    done
+    [ "$missing" -eq 0 ] || exit 1
+}
 
-# Download micro-ROS agent packages
-ros2 run micro_ros_setup create_agent_ws.sh
+install_base_packages() {
+    sudo apt update
+    sudo apt install -y python3-pip python3-rosdep libusb-dev
+}
 
-# Build step
-ros2 run micro_ros_setup build_agent.sh
-#source install/local_setup.bash
-CMD_TEXT="source ~/work/microros_ws/install/local_setup.bash"
-if ! grep -q "$CMD_TEXT" ~/.bashrc; then
-    echo "$CMD_TEXT" >> ~/.bashrc
-fi
-source ~/.bashrc
+prepare_ros_environment() {
+    # shellcheck disable=SC1091
+    source "/opt/ros/$ROS_DISTRO/setup.bash"
+}
 
-# test agent
-# ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyACM0
+setup_microros_workspace() {
+    mkdir -p "$MICROROS_WS_PATH/src"
+    cd "$MICROROS_WS_PATH" || exit 1
 
-#Download the Linux udev rules and copy the file to /etc/udev/rules.d.
-curl https://www.pjrc.com/teensy/00-teensy.rules -O
-sudo cp 00-teensy.rules /etc/udev/rules.d/
-rm 00-teensy.rules
+    if [ ! -d "$MICROROS_WS_PATH/src/micro_ros_setup" ]; then
+        git clone -b "$ROS_DISTRO" https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup
+    fi
 
-if is_raspberry_pi; then
-    curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
+    if ! rosdep db >/dev/null 2>&1; then
+        sudo rosdep init || true
+    fi
+
+    rosdep update
+    rosdep install --from-paths src --ignore-src -y
+
+    colcon build
+    # shellcheck disable=SC1091
+    source install/local_setup.bash
+
+    ros2 run micro_ros_setup create_agent_ws.sh
+    ros2 run micro_ros_setup build_agent.sh
+
+    append_once 'source ~/work/microros_ws/install/local_setup.bash'
+}
+
+install_teensy_rules() {
+    cd "$WORK_DIR" || exit 1
+    curl -fsSL -o 00-teensy.rules https://www.pjrc.com/teensy/00-teensy.rules
+    sudo install -m 644 00-teensy.rules /etc/udev/rules.d/00-teensy.rules
+    rm -f 00-teensy.rules
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
+}
+
+install_raspberry_pi_tools() {
+    if ! is_raspberry_pi; then
+        return
+    fi
+
+    cd "$WORK_DIR" || exit 1
+
+    curl -fsSL -o get-platformio.py \
+        https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
     python3 get-platformio.py
 
-    export PATH=$PATH:$HOME/.local/bin
-    ln -s ~/.platformio/penv/bin/platformio ~/.local/bin/platformio
-    ln -s ~/.platformio/penv/bin/pio ~/.local/bin/pio
-    ln -s ~/.platformio/penv/bin/piodebuggdb ~/.local/bin/piodebuggdb
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$HOME/.platformio/penv/bin/platformio" "$HOME/.local/bin/platformio"
+    ln -sf "$HOME/.platformio/penv/bin/pio" "$HOME/.local/bin/pio"
+    ln -sf "$HOME/.platformio/penv/bin/piodebuggdb" "$HOME/.local/bin/piodebuggdb"
 
-    sudo apt-get install libusb-dev
+    if [ ! -d "$WORK_DIR/teensy_loader_cli" ]; then
+        git clone https://github.com/PaulStoffregen/teensy_loader_cli "$WORK_DIR/teensy_loader_cli"
+    fi
 
-    cd ~/work
-    git clone https://github.com/PaulStoffregen/teensy_loader_cli
-    cd teensy_loader_cli
+    cd "$WORK_DIR/teensy_loader_cli" || exit 1
     make
-    sudo cp teensy_loader_cli /usr/local/bin/
-    cd ..
-    sudo rm -r teensy_loader_cli/
-fi
+    sudo install -m 755 teensy_loader_cli /usr/local/bin/teensy_loader_cli
+}
+
+main() {
+    require_ros
+    install_base_packages
+    prepare_ros_environment
+    require_commands
+    setup_microros_workspace
+    install_teensy_rules
+    install_raspberry_pi_tools
+
+    echo "micro-ROS setup completed."
+}
+
+main "$@"

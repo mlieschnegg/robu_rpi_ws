@@ -1,107 +1,135 @@
 #!/bin/bash
 
-echo "Installation von ROS"
+#set -e
+
+echo "Installing ROS"
 
 source "rpi_detect.sh"
-if ! is_raspberry_pi; then
-  cd ~/work/ws_turtlebot/
-fi
 
-  # Update and upgrade system
-sudo apt update && sudo apt upgrade -y
+append_once() {
+    local line="$1"
+    if ! grep -Fqx "$line" "$HOME/.bashrc" 2>/dev/null; then
+        echo "$line" >> "$HOME/.bashrc"
+    fi
+}
 
-# Set locale
-sudo apt install -y locales
-sudo locale-gen en_US en_US.UTF-8
-#BUGFIX: fixing move-it issue and set LC_NUMERIC=en_US.UTF-8 -> https://github.com/moveit/moveit2/issues/1782
-sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LC_NUMERIC=en_US.UTF-8
-export LANG=en_US.UTF-8
+install_locale() {
+    sudo apt update
+    sudo apt upgrade -y
 
-sudo apt install -y software-properties-common
-sudo add-apt-repository -y universe
+    sudo apt install -y locales
+    sudo locale-gen en_US en_US.UTF-8
+    sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LC_NUMERIC=en_US.UTF-8
+    export LANG=en_US.UTF-8
+}
 
-sudo apt update && sudo apt install curl -y
-export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
-curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb" # If using Ubuntu derivates use $UBUNTU_CODENAME
-sudo dpkg -i /tmp/ros2-apt-source.deb
+setup_ros_repository() {
+    sudo apt install -y software-properties-common curl
+    sudo add-apt-repository -y universe
 
-sudo apt update && sudo apt install ros-dev-tools
+    export ROS_APT_SOURCE_VERSION
+    ROS_APT_SOURCE_VERSION="$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')"
 
-# Install ROS 2 Jazzy
-sudo apt update
-sudo apt upgrade
+    curl -L -o /tmp/ros2-apt-source.deb \
+        "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo "${VERSION_CODENAME}")_all.deb"
 
-sudo apt install -y ros-dev-tools
+    sudo dpkg -i /tmp/ros2-apt-source.deb
+    sudo apt update
+    sudo apt install -y ros-dev-tools
+}
 
-# Aktuelle Ubuntu-Version abfragen
-ubuntu_version=$(lsb_release -rs)
-# Verzweigung basierend auf der Version
-if [ "$ubuntu_version" = "22.04" ]; then
-    echo "Ihre Ubuntu-Version ist: $ubuntu_version, es wird die ROS-Distro Humble installiert!"
-    
-    if is_raspberry_pi; then
-        sudo apt install -y ros-humble-desktop
-    else
-        sudo apt install -y ros-humble-desktop-full
+install_ros_distribution() {
+    local ubuntu_version
+    ubuntu_version="$(lsb_release -rs)"
+
+    case "$ubuntu_version" in
+        22.04)
+            if is_raspberry_pi; then
+                sudo apt install -y ros-humble-desktop
+            else
+                sudo apt install -y ros-humble-desktop-full
+            fi
+            append_once 'source /opt/ros/humble/setup.bash'
+            ;;
+        24.04)
+            if is_raspberry_pi; then
+                sudo apt install -y ros-jazzy-desktop
+            else
+                sudo apt install -y ros-jazzy-desktop-full
+            fi
+            append_once 'source /opt/ros/jazzy/setup.bash'
+            ;;
+        *)
+            echo "Unsupported Ubuntu version: $ubuntu_version"
+            return 1
+            ;;
+    esac
+
+    # shellcheck disable=SC1090
+    source ~/.bashrc
+}
+
+check_ros_environment() {
+    if [ -z "${ROS_DISTRO:-}" ]; then
+        echo "ROS_DISTRO is not set. Open a new shell or source your ROS setup first."
+        return 1
     fi
 
-    CMD_TEXT="source /opt/ros/humble/setup.bash"
-    if ! grep -q "$CMD_TEXT" ~/.bashrc; then
-        echo "$CMD_TEXT" >> ~/.bashrc
+    if [ ! -f "/opt/ros/$ROS_DISTRO/setup.bash" ]; then
+        echo "ROS setup file not found: /opt/ros/$ROS_DISTRO/setup.bash"
+        return 1
     fi
+}
 
-elif [ "$ubuntu_version" = "24.04" ]; then
-    echo "Ihre Ubuntu-Version ist: $ubuntu_version, es wird die ROS-Distro Jazzy installiert!"
-    
-    if is_raspberry_pi; then
-        sudo apt install -y ros-jazzy-desktop
-    else
-        sudo apt install -y ros-jazzy-desktop-full
+install_ros_packages() {
+    check_ros_environment || return 1
+
+    sudo apt install -y \
+        "ros-${ROS_DISTRO}-ros2-control" \
+        "ros-${ROS_DISTRO}-ros2-controllers" \
+        "ros-${ROS_DISTRO}-ros-gz" \
+        "ros-${ROS_DISTRO}-dynamixel-sdk" \
+        "ros-${ROS_DISTRO}-dynamixel-interfaces" \
+        "ros-${ROS_DISTRO}-moveit" \
+        "ros-${ROS_DISTRO}-tf-transformations" \
+        "ros-${ROS_DISTRO}-cartographer" \
+        "ros-${ROS_DISTRO}-cartographer-ros" \
+        "ros-${ROS_DISTRO}-navigation2" \
+        "ros-${ROS_DISTRO}-nav2-bringup" \
+        "ros-${ROS_DISTRO}-rosbridge-server" \
+        "ros-${ROS_DISTRO}-joint-state-publisher-gui" \
+        "ros-${ROS_DISTRO}-twist-mux" \
+        "ros-${ROS_DISTRO}-rqt-image-view" \
+        "ros-${ROS_DISTRO}-joy" \
+        "ros-${ROS_DISTRO}-rmw-cyclonedds-cpp" \
+        "ros-${ROS_DISTRO}-teleop-twist-joy" \
+        python3-colcon-clean \
+        joystick
+
+    if ! is_raspberry_pi; then
+        sudo apt install -y "ros-${ROS_DISTRO}-camera-ros"
     fi
+}
 
-    CMD_TEXT="source /opt/ros/jazzy/setup.bash"
-    if ! grep -q "$CMD_TEXT" ~/.bashrc; then
-        echo "$CMD_TEXT" >> ~/.bashrc
+setup_paths() {
+    append_once 'export PATH="$PATH:$HOME/work/.robu/scripts"'
+}
+
+install_optional_pc_setup() {
+    if ! is_raspberry_pi && [ -f "./turtlebot_setup.sh" ]; then
+        . ./turtlebot_setup.sh
     fi
-else
-  echo "Ihre Ubuntu-Version ($ubuntu_version) wird nicht explizit unterstützt oder ist nicht 22.04/24.04."
-fi
+}
 
-source ~/.bashrc
+main() {
+    install_locale
+    setup_ros_repository
+    install_ros_distribution
+    install_ros_packages
+    setup_paths
+    install_optional_pc_setup
 
-sudo apt install -y ros-${ROS_DISTRO}-ros2-control
-sudo apt install -y ros-${ROS_DISTRO}-ros2-controllers
-sudo apt install -y ros-${ROS_DISTRO}-*-ros2-control
-sudo apt install -y ros-${ROS_DISTRO}-ros-gz
-sudo apt install -y ros-${ROS_DISTRO}-dynamixel-sdk
-sudo apt install -y ros-${ROS_DISTRO}-dynamixel-interfaces
-sudo apt install -y python3-colcon-clean
-sudo apt install -y ros-${ROS_DISTRO}-moveit
-sudo apt install -y ros-${ROS_DISTRO}-tf-transformations
-sudo apt install -y ros-${ROS_DISTRO}-cartographer
-sudo apt install -y ros-${ROS_DISTRO}-cartographer-ros
-sudo apt install -y ros-${ROS_DISTRO}-navigation2
-sudo apt install -y ros-${ROS_DISTRO}-nav2-bringup
-sudo apt install -y ros-${ROS_DISTRO}-rosbridge-server
-sudo apt install -y ros-${ROS_DISTRO}-joint-state-publisher-gui
-sudo apt install -y ros-${ROS_DISTRO}-twist-mux
-sudo apt install -y ros-${ROS_DISTRO}-rqt-image-view
-sudo apt install -y ros-${ROS_DISTRO}-joy
-sudo apt install -y joystick
-sudo apt install -y ros-${ROS_DISTRO}-rmw-cyclonedds-cpp
+    echo "ROS setup completed."
+}
 
-#sudo apt install -y ros-${ROS_DISTRO}-gazebo-ros-pkgs
-
-if ! is_raspberry_pi; then #muss für den raspberry extra gebaut werden!!! -> rpi_camera_setup.sh
-  sudo apt install -y ros-${ROS_DISTRO}-camera-ros
-fi
-
-CMD_TEXT="export PATH="$PATH:/work/.robu/scripts""
-if ! grep -q "$CMD_TEXT" ~/.bashrc; then
-    echo "$CMD_TEXT" >> ~/.bashrc
-fi
-
-
-if ! is_raspberry_pi; then
-  . turtlebot_setup.sh
-fi
+main "$@"

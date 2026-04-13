@@ -1,141 +1,153 @@
 #!/bin/bash
 
+#set -e
+
 source "rpi_detect.sh"
 
-if is_raspberry_pi; then
+WORK_DIR="$HOME/work"
+CAMERA_WS="$WORK_DIR/camera_ws"
 
-    #################################
-    # libcamera
-    #################################
+require_raspberry_pi() {
+    if ! is_raspberry_pi; then
+        echo "This script is only for Raspberry Pi"
+        exit 0
+    fi
+}
 
-    #Librarys
+require_ros() {
+    if [ -z "${ROS_DISTRO:-}" ]; then
+        echo "ROS_DISTRO is not set. Run ros_setup.sh first, then open a new shell or source /opt/ros/<distro>/setup.bash."
+        exit 1
+    fi
 
-    sudo apt install -y python3-pip git python3-jinja2
+    if [ ! -f "/opt/ros/$ROS_DISTRO/setup.bash" ]; then
+        echo "Missing ROS installation: /opt/ros/$ROS_DISTRO/setup.bash"
+        exit 1
+    fi
 
-    sudo apt install -y libboost-dev
-    sudo apt install -y libgnutls28-dev openssl libtiff5-dev pybind11-dev
-    sudo apt install -y qtbase5-dev libqt5core5a libqt5gui5 libqt5widgets5
-    sudo apt install -y meson cmake
-    sudo apt install -y python3-yaml python3-ply
-    sudo apt install -y libglib2.0-dev libgstreamer-plugins-base1.0-dev
+    for cmd in git meson ninja colcon rosdep; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            echo "Missing required command: $cmd"
+            exit 1
+        fi
+    done
+}
 
-    sudo pip3 install meson
+append_once() {
+    local line="$1"
+    if ! grep -Fqx "$line" "$HOME/.bashrc" 2>/dev/null; then
+        echo "$line" >> "$HOME/.bashrc"
+    fi
+}
 
-    #Libcamera
-    cd ~/work/
-    git clone https://github.com/raspberrypi/libcamera.git
-    cd libcamera
+install_build_dependencies() {
+    sudo apt install -y \
+        python3-pip git python3-jinja2 python3-yaml python3-ply \
+        libboost-dev libgnutls28-dev openssl libtiff5-dev pybind11-dev \
+        qtbase5-dev libqt5core5a libqt5gui5 libqt5widgets5 \
+        meson cmake ninja-build \
+        libglib2.0-dev libgstreamer-plugins-base1.0-dev \
+        libboost-program-options-dev libdrm-dev libexif-dev \
+        ffmpeg libsdl2-2.0-0 adb wget gcc pkg-config \
+        libsdl2-dev libavcodec-dev libavdevice-dev libavformat-dev \
+        libavutil-dev libswresample-dev libusb-1.0-0 libusb-1.0-0-dev \
+        libepoxy-dev libegl1-mesa-dev python3-colcon-meson
 
-    meson setup build --buildtype=release -Dpipelines=rpi/vc4,rpi/pisp -Dipas=rpi/vc4,rpi/pisp -Dv4l2=enabled -Dgstreamer=enabled -Dtest=false -Dlc-compliance=disabled -Dcam=disabled -Dqcam=disabled -Ddocumentation=disabled -Dpycamera=enabled
+    python3 -m pip install --user meson
+}
+
+clone_or_update_repo() {
+    local repo_url="$1"
+    local target_dir="$2"
+
+    if [ ! -d "$target_dir/.git" ]; then
+        git clone "$repo_url" "$target_dir"
+    fi
+}
+
+build_libcamera() {
+    cd "$WORK_DIR" || exit 1
+    clone_or_update_repo https://github.com/raspberrypi/libcamera.git "$WORK_DIR/libcamera"
+    cd "$WORK_DIR/libcamera" || exit 1
+
+    meson setup build \
+        --buildtype=release \
+        -Dpipelines=rpi/vc4,rpi/pisp \
+        -Dipas=rpi/vc4,rpi/pisp \
+        -Dv4l2=enabled \
+        -Dgstreamer=enabled \
+        -Dtest=false \
+        -Dlc-compliance=disabled \
+        -Dcam=disabled \
+        -Dqcam=disabled \
+        -Ddocumentation=disabled \
+        -Dpycamera=enabled || true
+
     ninja -C build -j 1
     sudo ninja -C build install
     sudo ldconfig
+}
 
-    ########################################################
-    # camera_ros
-    # see: https://github.com/christianrauch/camera_ros
-    ########################################################
+build_camera_ros() {
+    mkdir -p "$CAMERA_WS/src"
+    cd "$CAMERA_WS/src" || exit 1
+    clone_or_update_repo https://github.com/christianrauch/camera_ros.git "$CAMERA_WS/src/camera_ros"
 
-    # create workspace
-    mkdir -p ~/work/camera_ws/src
-    cd ~/work/camera_ws/src
-
-    # # check out libcamera
-    # sudo apt -y install python3-colcon-meson
-    # git clone https://github.com/raspberrypi/libcamera.git
-
-    # check out this camera_ros repository
-    git clone https://github.com/christianrauch/camera_ros.git
-
-    # resolve binary dependencies and build workspace
-    source /opt/ros/$ROS_DISTRO/setup.bash
-    cd ~/work/camera_ws/
-    rosdep install -y --from-paths src --ignore-src --rosdistro $ROS_DISTRO --skip-keys=libcamera
+    # shellcheck disable=SC1091
+    source "/opt/ros/$ROS_DISTRO/setup.bash"
+    cd "$CAMERA_WS" || exit 1
+    rosdep install -y --from-paths src --ignore-src --rosdistro "$ROS_DISTRO" --skip-keys=libcamera
     colcon build --event-handlers=console_direct+
 
-    # Test der Camera:
-    # ros2 run camera_ros camera_node
-    # oder mit GUI-Fenster
-    # export DISPLAY=0
-    # xhost +SI:localuser:$(whoami)
-    # ros2 launch camera_ros camera.launch.py
-    CMD_TEXT="source ~/work/camera_ws/install/setup.bash"
-    if ! grep -q "$CMD_TEXT" ~/.bashrc; then
-        echo "$CMD_TEXT" >> ~/.bashrc
-    fi
+    append_once 'source ~/work/camera_ws/install/setup.bash'
+}
 
+build_rpicam_apps() {
+    cd "$WORK_DIR" || exit 1
+    clone_or_update_repo https://github.com/raspberrypi/rpicam-apps.git "$WORK_DIR/rpicam-apps"
+    cd "$WORK_DIR/rpicam-apps" || exit 1
 
-    ################################################
-    # rpicam-apps
-    ################################################
+    meson setup build \
+        -Denable_libav=disabled \
+        -Denable_drm=enabled \
+        -Denable_egl=enabled \
+        -Denable_qt=enabled \
+        -Denable_opencv=enabled \
+        -Denable_tflite=disabled || true
 
-    # librarys
-    sudo apt install -y cmake libboost-program-options-dev libdrm-dev libexif-dev
-    sudo apt install -y meson ninja-build
-    sudo apt install -y ffmpeg libsdl2-2.0-0 adb wget gcc pkg-config meson libsdl2-dev libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev libswresample-dev libusb-1.0-0 libusb-1.0-0-dev
-    sudo apt install -y libepoxy-dev
-
-    #rpicam-apps
-    git clone https://github.com/raspberrypi/rpicam-apps.git
-    cd rpicam-apps
-
-    meson setup build -Denable_libav=disabled -Denable_drm=enabled -Denable_egl=enabled -Denable_qt=enabled -Denable_opencv=enabled -Denable_tflite=disabled
     meson compile -C build -j 1
-
     sudo meson install -C build
     sudo ldconfig
-    rpicam-still --version
+}
 
-    #####################################################
-    # libepoxy
-    #####################################################
+build_libepoxy() {
+    cd "$WORK_DIR" || exit 1
+    clone_or_update_repo https://github.com/anholt/libepoxy.git "$WORK_DIR/libepoxy"
+    cd "$WORK_DIR/libepoxy" || exit 1
 
-    sudo apt install -y libegl1-mesa-dev
+    meson setup build || true
+    ninja -C build -j 1
+    sudo ninja -C build install
+}
 
-    cd ~/work/
-    git clone https://github.com/anholt/libepoxy.git
-    cd libepoxy
-    meson setup build
-    cd build
-    ninja -j 1
-    sudo ninja install
+setup_gstreamer() {
+    sudo apt install -y gstreamer1.0-plugins-bad
+    append_once 'export GST_PLUGIN_PATH=/usr/local/lib/aarch64-linux-gnu/'
+}
 
-    # ####################################################
-    # # libcamera-apps
-    # ####################################################
+main() {
+    require_raspberry_pi
+    require_ros
+    mkdir -p "$WORK_DIR"
 
-    # cd ~/work/
-    # git clone https://github.com/raspberrypi/libcamera-apps.git
-    # cd libcamera-apps
+    install_build_dependencies
+    build_libcamera
+    build_camera_ros
+    build_rpicam_apps
+    build_libepoxy
+    setup_gstreamer
 
-    # meson setup build -Denable_opencv=enabled
-    # ninja -j 1
-    # sudo meson install -C build
-    # sudo ldconfig
+    echo "Raspberry Pi camera setup completed."
+}
 
-    #######################################################
-    # create symbolic links for rpicam-apps
-    #######################################################
-
-    # sudo ln -s /usr/local/bin/libcamera-hello  /usr/local/bin/rpicam-hello
-    # sudo ln -s /usr/local/bin/libcamera-vid    /usr/local/bin/rpicam-vid
-    # sudo ln -s /usr/local/bin/libcamera-still  /usr/local/bin/rpicam-still
-    # sudo ln -s /usr/local/bin/libcamera-raw    /usr/local/bin/rpicam-raw
-
-    ####################################################
-    # gstreamer
-    ####################################################
-
-    sudo apt-get install gstreamer1.0-plugins-bad
-        
-    CMD_TEXT="echo export GST_PLUGIN_PATH=/usr/local/lib/aarch64-linux-gnu/"
-    if ! grep -q "$CMD_TEXT" ~/.bashrc; then
-        echo "$CMD_TEXT" >> ~/.bashrc
-    fi
-
-    # CMD_TEXT="dtoverlay=imx219"
-    # if ! grep -q "$CMD_TEXT" /boot/firmware/config.txt; then
-    #     echo "$CMD_TEXT" >> /boot/firmware/config.txt
-    # fi
-
-fi
+main "$@"

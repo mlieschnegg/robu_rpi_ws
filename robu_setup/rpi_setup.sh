@@ -1,130 +1,148 @@
 #!/bin/bash
 
-echo "Starting Setup for RPI"
+#set -e
+
+echo "Starting setup for Raspberry Pi"
 
 source "rpi_detect.sh"
 
-if ! is_raspberry_pi; then
-    echo "This script is only for Raspberry Pi"
-    exit 1
-fi
+WORK_DIR="$HOME/work"
+VENV_DIR="$WORK_DIR/.venvs/robu"
 
-#optional: Install wiringpi for GPIO control
-#sudo apt install wiringpi
+require_raspberry_pi() {
+    if ! is_raspberry_pi; then
+        echo "This script is only for Raspberry Pi"
+        exit 1
+    fi
+}
 
-sudo apt -y install rpi.gpio-common
-sudo apt -y install python3-rpi.gpio
+install_apt_packages() {
+    sudo apt install -y rpi.gpio-common python3-rpi.gpio
+    sudo apt install -y python3-pip python3-venv python3-dev
+}
 
-#Benutzer zur Gruppe dialout hinzufügen (z.B. serielle Schnittstelle)
-sudo adduser $USER dialout
-sudo adduser $USER video
-sudo adduser $USER kmem
+ensure_group_and_membership() {
+    local group_name="$1"
 
-# 1) Gruppe gpio anlegen (falls nicht vorhanden)
-if ! getent group gpio > /dev/null; then
-    sudo groupadd gpio
-fi
+    if ! getent group "$group_name" > /dev/null; then
+        sudo groupadd "$group_name"
+    fi
 
-# 2) User zur Gruppe hinzufügen
-if ! id -nG $USER | grep -qw "gpio"; then
-    sudo usermod -aG gpio $USER
-fi
+    if ! id -nG "$USER" | grep -qw "$group_name"; then
+        sudo usermod -aG "$group_name" "$USER"
+    fi
+}
 
-# 3) udev-Regel schreiben (atomar, sauber)
-sudo tee "/etc/udev/rules.d/99-gpio.rules" > /dev/null <<'EOF'
-# GPIO character devices
+setup_groups() {
+    sudo adduser "$USER" dialout || true
+    sudo adduser "$USER" video || true
+    sudo adduser "$USER" kmem || true
+
+    ensure_group_and_membership gpio
+    ensure_group_and_membership spi
+
+    if getent group i2c > /dev/null; then
+        ensure_group_and_membership i2c
+    fi
+}
+
+setup_udev_rules() {
+    sudo tee /etc/udev/rules.d/99-gpio.rules > /dev/null <<'EOF'
 SUBSYSTEM=="gpio", KERNEL=="gpiochip*", MODE="0660", GROUP="gpio"
 SUBSYSTEM=="gpio", KERNEL=="gpio*",     MODE="0660", GROUP="gpio"
-
-# GPIO memory access (if available)
 KERNEL=="gpiomem", MODE="0660", GROUP="gpio"
 EOF
 
-# 4) udev neu laden
-sudo udevadm control --reload-rules
-sudo udevadm trigger
+    sudo tee /etc/udev/rules.d/99-spi.rules > /dev/null <<'EOF'
+KERNEL=="spidev*", MODE="0660", GROUP="spi"
+EOF
 
-sudo groupadd spi
-sudo usermod -aG spi $USER
-echo 'KERNEL=="spidev*", GROUP="spi", MODE="0660"' | sudo tee /etc/udev/rules.d/99-spi.rules > /dev/null
-sudo udevadm control --reload-rules
-sudo udevadm trigger
+    sudo tee /etc/udev/rules.d/99-i2c.rules > /dev/null <<'EOF'
+KERNEL=="i2c-[0-9]*", MODE="0660", GROUP="i2c"
+EOF
 
-#sudo adduser $USER gpio -> gibt es eventuell nicht, Gruppe erstellen plus udev rule hinzufügen
-sudo chown root:$USER /dev/gpiomem
+    sudo tee /etc/udev/rules.d/99-ttyusb-acm.rules > /dev/null <<'EOF'
+KERNEL=="ttyACM[0-9]*", MODE="0660", GROUP="dialout"
+KERNEL=="ttyUSB[0-9]*", MODE="0660", GROUP="dialout"
+EOF
 
-#Zugriffsrechte hinzufügen (gehen nach dem Neustart verloren)
-sudo chmod a+rw /dev/ttyACM0
-sudo chmod a+rw /dev/gpiomem
-sudo chmod a+rw /dev/i2c-1
-sudo chmod a+rw /dev/video0
-sudo chmod a+rw /dev/ttyUSB0
-sudo chmod a+rw /dev/mem
-sudo chmod a+rw /dev/spidev0.0
-sudo chmod a+rw /dev/spidev0.1
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
+}
 
-pip install rpi_ws281x --break-system-packages
-#pip install smbus --break-system-packages
-#pip install smbus2 --break-system-packages
-pip install smbus3 --break-system-packages
-pip install RPi.GPIO --break-system-packages
-sudo pip3 install adafruit-circuitpython-vl53l1x --break-system-packages
-pip install picamera2 --break-system-packages
+setup_runtime_permissions() {
+    [ -e /dev/ttyACM0 ] && sudo chmod a+rw /dev/ttyACM0
+    [ -e /dev/gpiomem ] && sudo chmod a+rw /dev/gpiomem
+    [ -e /dev/i2c-1 ] && sudo chmod a+rw /dev/i2c-1
+    [ -e /dev/video0 ] && sudo chmod a+rw /dev/video0
+    [ -e /dev/ttyUSB0 ] && sudo chmod a+rw /dev/ttyUSB0
+    [ -e /dev/mem ] && sudo chmod a+rw /dev/mem
+    [ -e /dev/spidev0.0 ] && sudo chmod a+rw /dev/spidev0.0
+    [ -e /dev/spidev0.1 ] && sudo chmod a+rw /dev/spidev0.1
+}
 
+setup_python_venv() {
+    mkdir -p "$WORK_DIR/.venvs"
 
-#sudo cp robuboard_power_off_5v.service /etc/systemd/system/robuboard_power_off_5v.service
-sudo ln -sf ~/work/.robu/config/service/robuboard_power_off_5v.service /etc/systemd/system/robuboard_power_off_5v.service
-sudo systemctl daemon-reload
-sudo systemctl enable robuboard_power_off_5v.service
-
-sudo loginctl enable-linger robu
-ln -sf ~/work/.robu/config/service/robuboard_powerswitch.service ~/.config/systemd/user/robuboard_powerswitch.service
-systemctl --user daemon-reload
-systemctl --user enable robuboard_powerswitch.service
-systemctl --user start robuboard_powerswitch.service
-
-
-if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard_v0; print(is_robuboard_v0())" | grep -q "True"; then
-    CMD_TEXT="export FASTRTPS_DEFAULT_PROFILES_FILE=/home/robu/work/.robu/config/fastdds.xml"
-    if ! grep -q "$CMD_TEXT" ~/.bashrc; then
-        echo "$CMD_TEXT" >> ~/.bashrc
+    if [ ! -d "$VENV_DIR" ]; then
+        python3 -m venv --system-site-packages "$VENV_DIR"
     fi
-fi
 
+    source "$VENV_DIR/bin/activate"
+    python -m pip install --upgrade pip setuptools wheel
+}
 
-# # Setup Bluetooth
-# sudo apt install -y bluetooth bluez libbluetooth-dev
+install_python_packages() {
+    source "$VENV_DIR/bin/activate"
+    python -m pip install rpi_ws281x smbus2 RPi.GPIO adafruit-circuitpython-vl53l1x picamera2
+}
 
-# sudo systemctl enable --now bluetooth
-# # systemctl status bluetooth --no-pager
+setup_system_services() {
+    sudo ln -sf "$HOME/work/.robu/config/service/robuboard_power_off_5v.service" \
+        /etc/systemd/system/robuboard_power_off_5v.service
 
-# # Check if bluetooth is working
-# hcitool dev
-# hcitool -i hci0 scan
+    sudo systemctl daemon-reload
+    sudo systemctl enable robuboard_power_off_5v.service
+}
 
-# # Pair with Wireless Game Controller (only once)
-# bluetoothctl scan on
-# #Game Controller 1
-# bluetoothctl trust 13:88:21:24:C4:E2
-# bluetoothctl connect 13:88:21:24:C4:E2
-# #Game Controller 2
-# bluetoothctl trust 50:AD:CE:BF:DD:9D
-# bluetoothctl connect 50:AD:CE:BF:DD:9D
-# bluetoothctl scan off
+setup_user_services() {
+    mkdir -p "$HOME/.config/systemd/user"
 
+    sudo loginctl enable-linger "$USER"
 
-# # Ensure automatic Bluetooth connection to the controller on reboot
-# cat <<EOF | sudo tee /etc/systemd/system/bt-controller-connect.service > /dev/null
-# [Unit]
-# Description=Connect Bluetooth Controller at boot
-# After=bluetooth.target
+    ln -sf "$HOME/work/.robu/config/service/robuboard_powerswitch.service" \
+        "$HOME/.config/systemd/user/robuboard_powerswitch.service"
 
-# [Service]
-# Type=oneshot
-# ExecStart=/usr/bin/bluetoothctl connect 13:88:21:24:C4:E2
+    systemctl --user daemon-reload
+    systemctl --user enable robuboard_powerswitch.service
+    systemctl --user start robuboard_powerswitch.service
+}
 
-# [Install]
-# WantedBy=multi-user.target
-# EOF
+setup_fastdds_profile() {
+    if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard_v0; print(is_robuboard_v0())" | grep -q "True"; then
+        local line='export FASTRTPS_DEFAULT_PROFILES_FILE="$HOME/work/.robu/config/fastdds.xml"'
+        if ! grep -Fq 'FASTRTPS_DEFAULT_PROFILES_FILE=' "$HOME/.bashrc" 2>/dev/null; then
+            echo "$line" >> "$HOME/.bashrc"
+        fi
+    fi
+}
 
-# sudo systemctl enable bt-controller-connect.service
+main() {
+    require_raspberry_pi
+    install_apt_packages
+    setup_groups
+    setup_udev_rules
+    setup_runtime_permissions
+    setup_python_venv
+    install_python_packages
+    setup_system_services
+    setup_user_services
+    setup_fastdds_profile
+
+    echo "Raspberry Pi setup completed."
+    echo "Python venv: $VENV_DIR"
+    echo "Activate with: source $VENV_DIR/bin/activate"
+    echo "Log out and back in, or reboot, so new group memberships take effect."
+}
+
+main "$@"

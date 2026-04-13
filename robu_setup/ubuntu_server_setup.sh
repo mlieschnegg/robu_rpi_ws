@@ -1,30 +1,55 @@
 #!/bin/bash
 
-echo "Starte Ubuntu server installation"
+#set -e
 
-sudo usermod -aG $USER
+echo "Starting Ubuntu Server setup"
 
-QT_QPA_PLATFORM=linuxfb
-QT_QPA_EVDEV_MOUSE_PARAMETERS=/dev/input/event2
-QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS=/dev/input/event5
-QT_QPA_EVDEV_KEYBOARD_PARAMETERS=/dev/input/event3
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-sudo apt install python3-pyqt5
-libqt5gui5t64 \
-  qtbase5-private-dev \
-  libinput-dev \
-  libevdev2 \
-  libmtdev1t64 \
-  evtest
+export QT_QPA_PLATFORM=linuxfb
+export QT_QPA_EVDEV_MOUSE_PARAMETERS=/dev/input/event2
+export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS=/dev/input/event5
+export QT_QPA_EVDEV_KEYBOARD_PARAMETERS=/dev/input/event3
 
-. git_setup.sh
-. robu_setup.sh
-. ros_setup.sh
-. microros_setup.sh
-. rpi_setup.sh
-. rpi_camera_setup.sh
-. network_setup.sh
+install_qt_packages() {
+    sudo apt update
+    sudo apt install -y \
+        python3-pyqt5 \
+        libqt5gui5t64 \
+        qtbase5-private-dev \
+        libinput-dev \
+        libevdev2 \
+        libmtdev1t64 \
+        evtest
+}
 
-sudo apt update ; sudo apt upgrade
+run_sub_setup_scripts() {
+    for script in \
+        robu_setup.sh \
+        rpi_setup.sh \
+        rpi_camera_setup.sh \
+        network_setup.sh \
+        cleanup.sh
+    do
+        if [ -f "$SCRIPT_DIR/$script" ]; then
+            . "$SCRIPT_DIR/$script"
+        else
+            echo "Skipping missing script: $script"
+        fi
+    done
+}
 
-. cleanup.sh
+main() {
+    # Add specific group memberships here if you really need them, e.g.:
+    # sudo usermod -aG dialout "$USER"
+
+    sudo apt update
+    sudo apt upgrade -y
+
+    install_qt_packages
+    run_sub_setup_scripts
+
+    echo "Ubuntu Server setup completed."
+}
+
+main "$@"
