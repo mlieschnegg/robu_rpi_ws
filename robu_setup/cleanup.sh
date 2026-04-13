@@ -25,3 +25,5 @@ rm  -rf ~/java/README.md
 
 snap list --all | awk '/disabled/{print $1, $3}' | while read snapname revision; do sudo snap remove --purge "$snapname" --revision="$revision"; done
 
+. ../scripts/cleanup_ros2_workspace.sh
+

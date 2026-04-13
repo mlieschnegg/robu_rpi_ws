@@ -96,6 +96,12 @@ if ! is_raspberry_pi; then #muss für den raspberry extra gebaut werden!!! -> rp
   sudo apt install -y ros-${ROS_DISTRO}-camera-ros
 fi
 
+CMD_TEXT="export PATH="$PATH:/work/.robu/scripts""
+if ! grep -q "$CMD_TEXT" ~/.bashrc; then
+    echo "$CMD_TEXT" >> ~/.bashrc
+fi
+
+
 if ! is_raspberry_pi; then
   . turtlebot_setup.sh
 fi
