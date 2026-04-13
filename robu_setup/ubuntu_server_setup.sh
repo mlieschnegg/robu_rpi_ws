@@ -17,10 +17,12 @@ libqt5gui5t64 \
   libmtdev1t64 \
   evtest
 
-. rpi_setup.sh
+. git_setup.sh
 . robu_setup.sh
+. ros_setup.sh
+. microros_setup.sh
+. rpi_setup.sh
 . rpi_camera_setup.sh
-. rpi_detect.sh
 . network_setup.sh
 
 sudo apt update ; sudo apt upgrade
