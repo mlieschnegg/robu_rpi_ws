@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -e
+set -e
 
 echo "Starting setup for Raspberry Pi"
 
@@ -9,6 +9,7 @@ source "$SCRIPT_DIR/rpi_detect.sh"
 
 WORK_DIR="$HOME/work"
 VENV_DIR="$WORK_DIR/.venvs/robu"
+SYS_PYTHON="/usr/bin/python3"
 
 setup_venv_auto_activate() {
     local line='if [ -d "$HOME/work/.venvs/robu" ] && [ -z "$VIRTUAL_ENV" ]; then source "$HOME/work/.venvs/robu/bin/activate"; fi'
@@ -27,9 +28,16 @@ require_raspberry_pi() {
 }
 
 install_apt_packages() {
-    sudo apt install -y rpi.gpio-common python3-rpi.gpio
-    sudo apt install -y python3-pip python3-venv python3-dev
-    sudo apt isntall -y python3-smbus2 python3-spidev
+    sudo apt update
+    sudo apt install -y \
+        rpi.gpio-common \
+        python3-rpi.gpio \
+        python3-pip \
+        python3-venv \
+        python3-dev \
+        python3-smbus2 \
+        python3-spidev \
+        i2c-tools
 }
 
 ensure_group_and_membership() {
@@ -100,11 +108,72 @@ setup_python_venv() {
     fi
 
     source "$VENV_DIR/bin/activate"
+    python -m pip install --upgrade pip
+}
+
+install_system_python_pkg_if_missing() {
+    local module_name="$1"
+    local pip_name="${2:-$1}"
+
+    if $SYS_PYTHON -c "import ${module_name}" >/dev/null 2>&1; then
+        echo "[ROBU] System Python package already present: ${module_name}"
+        return 0
+    fi
+
+    echo "[ROBU] Installing system Python package via pip: ${pip_name}"
+    sudo $SYS_PYTHON -m pip install --break-system-packages "$pip_name"
+}
+
+install_venv_python_pkg_if_missing() {
+    local module_name="$1"
+    local pip_name="${2:-$1}"
+
+    source "$VENV_DIR/bin/activate"
+
+    if python -c "import ${module_name}" >/dev/null 2>&1; then
+        echo "[ROBU] Venv Python package already present: ${module_name}"
+        return 0
+    fi
+
+    echo "[ROBU] Installing venv Python package: ${pip_name}"
+    python -m pip install "$pip_name"
+}
+
+install_vl53_packages() {
+    install_system_python_pkg_if_missing "adafruit_vl53l1x" "adafruit-circuitpython-vl53l1x"
+
+    # Bei Bedarf später aktivieren:
+    # install_system_python_pkg_if_missing "adafruit_vl53l0x" "adafruit-circuitpython-vl53l0x"
+    # install_system_python_pkg_if_missing "adafruit_vl53l4cd" "adafruit-circuitpython-vl53l4cd"
+}
+
+install_camera_packages() {
+    if ! $SYS_PYTHON -c "import picamera2" >/dev/null 2>&1; then
+        echo "[ROBU] picamera2 not found in system Python."
+        echo "[ROBU] Trying pip fallback for picamera2..."
+        sudo $SYS_PYTHON -m pip install --break-system-packages picamera2 || true
+    else
+        echo "[ROBU] System Python package already present: picamera2"
+    fi
 }
 
 install_python_packages() {
-    source "$VENV_DIR/bin/activate"
-    python -m pip install rpi_ws281x smbus2 RPi.GPIO adafruit-circuitpython-vl53l1x picamera2
+    #
+    # ROS/runtime-relevante Python-Pakete:
+    # müssen für /usr/bin/python3 verfügbar sein
+    #
+
+    install_system_python_pkg_if_missing "rpi_ws281x" "rpi_ws281x"
+    install_vl53_packages
+    install_camera_packages
+
+    #
+    # Venv nur für Dev-/Hilfspakete
+    # Bei Bedarf aktivieren:
+    #
+    # install_venv_python_pkg_if_missing "pytest" "pytest"
+    # install_venv_python_pkg_if_missing "black" "black"
+    # install_venv_python_pkg_if_missing "flake8" "flake8"
 }
 
 setup_system_services() {
@@ -125,7 +194,7 @@ setup_user_services() {
 
     systemctl --user daemon-reload
     systemctl --user enable robuboard_powerswitch.service
-    systemctl --user start robuboard_powerswitch.service
+    systemctl --user start robuboard_powerswitch.service || true
 }
 
 setup_fastdds_profile() {
@@ -143,6 +212,16 @@ setup_fastdds_profile() {
     fi
 }
 
+print_runtime_checks() {
+    echo
+    echo "Runtime checks:"
+    echo "  /usr/bin/python3 -c \"import smbus2\""
+    echo "  /usr/bin/python3 -c \"import spidev\""
+    echo "  /usr/bin/python3 -c \"import RPi.GPIO\""
+    echo "  /usr/bin/python3 -c \"import rpi_ws281x\""
+    echo "  /usr/bin/python3 -c \"import adafruit_vl53l1x\""
+}
+
 main() {
     require_raspberry_pi
     install_apt_packages
@@ -155,7 +234,9 @@ main() {
     setup_system_services
     setup_user_services
     setup_fastdds_profile
+    print_runtime_checks
 
+    echo
     echo "Raspberry Pi setup completed."
     echo "Python venv: $VENV_DIR"
     echo "Activate with: source $VENV_DIR/bin/activate"
