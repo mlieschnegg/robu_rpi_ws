@@ -10,6 +10,16 @@ source "$SCRIPT_DIR/rpi_detect.sh"
 WORK_DIR="$HOME/work"
 VENV_DIR="$WORK_DIR/.venvs/robu"
 
+
+setup_venv_auto_activate() {
+    local line='if [ -d "$HOME/work/.venvs/robu" ] && [ -z "$VIRTUAL_ENV" ]; then source "$HOME/work/.venvs/robu/bin/activate"; fi'
+
+    if ! grep -Fq 'work/.venvs/robu/bin/activate' "$HOME/.bashrc"; then
+        echo "$line" >> "$HOME/.bashrc"
+        echo "[ROBU] Added venv auto-activation to .bashrc"
+    fi
+}
+
 setup_keyboard() {
     sudo sed -i -E 's/^XKBLAYOUT="[^"]*"/XKBLAYOUT="de"/' /etc/default/keyboard
 }
@@ -131,6 +141,7 @@ main() {
     install_base_packages
     install_exaloop
     setup_python_venv
+    setup_venv_auto_activate
     install_python_packages
     install_pc_tools
     run_sub_setup_scripts
