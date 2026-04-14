@@ -2,7 +2,8 @@
 
 #set -e
 
-source "rpi_detect.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/rpi_detect.sh"
 
 WORK_DIR="$HOME/work"
 CAMERA_WS="$WORK_DIR/camera_ws"
@@ -93,7 +94,6 @@ build_camera_ros() {
     cd "$CAMERA_WS/src" || exit 1
     clone_or_update_repo https://github.com/christianrauch/camera_ros.git "$CAMERA_WS/src/camera_ros"
 
-    # shellcheck disable=SC1091
     source "/opt/ros/$ROS_DISTRO/setup.bash"
     cd "$CAMERA_WS" || exit 1
     rosdep install -y --from-paths src --ignore-src --rosdistro "$ROS_DISTRO" --skip-keys=libcamera

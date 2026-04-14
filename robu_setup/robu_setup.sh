@@ -4,7 +4,8 @@
 
 echo "Starting setup for ROBU"
 
-source "rpi_detect.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/rpi_detect.sh"
 
 WORK_DIR="$HOME/work"
 VENV_DIR="$WORK_DIR/.venvs/robu"
@@ -34,7 +35,10 @@ setup_python_venv() {
     fi
 
     source "$VENV_DIR/bin/activate"
-    python -m pip install --upgrade pip setuptools wheel
+}
+
+install_python_packages() {
+    source "$VENV_DIR/bin/activate"
     python -m pip install pillow rpi_ws281x
 
     if is_raspberry_pi; then
@@ -63,7 +67,9 @@ install_pc_tools() {
     code --install-extension ranch-hand-robotics.urdf-editor
     code --install-extension pdconsec.vscode-print
 
-    . ./link_vsc_snippets
+    if [ -f "$SCRIPT_DIR/link_vsc_snippets" ]; then
+        . "$SCRIPT_DIR/link_vsc_snippets"
+    fi
 
     mkdir -p "$HOME/Desktop"
     cp -r "$HOME/work/.robu/config/desktop/"*.* "$HOME/Desktop" 2>/dev/null || true
@@ -74,12 +80,16 @@ install_exaloop() {
 }
 
 run_sub_setup_scripts() {
-    . ./git_setup.sh
-    . ./ros_setup.sh
-    . ./microros_setup.sh
+    for script in git_setup.sh ros_setup.sh microros_setup.sh; do
+        if [ -f "$SCRIPT_DIR/$script" ]; then
+            . "$SCRIPT_DIR/$script"
+        else
+            echo "Skipping missing script: $script"
+        fi
+    done
 
-    if ! is_raspberry_pi && [ -f "./machine_learning_setup.sh" ]; then
-        . ./machine_learning_setup.sh
+    if ! is_raspberry_pi && [ -f "$SCRIPT_DIR/machine_learning_setup.sh" ]; then
+        . "$SCRIPT_DIR/machine_learning_setup.sh"
     fi
 }
 
@@ -121,6 +131,7 @@ main() {
     install_base_packages
     install_exaloop
     setup_python_venv
+    install_python_packages
     install_pc_tools
     run_sub_setup_scripts
     setup_shell_and_permissions

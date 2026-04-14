@@ -40,14 +40,11 @@ run_sub_setup_scripts() {
 }
 
 main() {
-    # Add specific group memberships here if you really need them, e.g.:
-    # sudo usermod -aG dialout "$USER"
+    install_qt_packages
+    run_sub_setup_scripts
 
     sudo apt update
     sudo apt upgrade -y
-
-    install_qt_packages
-    run_sub_setup_scripts
 
     echo "Ubuntu Server setup completed."
 }

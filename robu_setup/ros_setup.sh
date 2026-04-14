@@ -4,7 +4,8 @@
 
 echo "Installing ROS"
 
-source "rpi_detect.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/rpi_detect.sh"
 
 append_once() {
     local line="$1"
@@ -65,7 +66,6 @@ install_ros_distribution() {
             ;;
     esac
 
-    # shellcheck disable=SC1090
     source ~/.bashrc
 }
 
@@ -102,7 +102,6 @@ install_ros_packages() {
         "ros-${ROS_DISTRO}-rqt-image-view" \
         "ros-${ROS_DISTRO}-joy" \
         "ros-${ROS_DISTRO}-rmw-cyclonedds-cpp" \
-        "ros-${ROS_DISTRO}-teleop-twist-joy" \
         python3-colcon-clean \
         joystick
 

@@ -4,7 +4,8 @@
 
 echo "Installing micro-ROS"
 
-source "rpi_detect.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/rpi_detect.sh"
 
 WORK_DIR="$HOME/work"
 MICROROS_WS_PATH="$WORK_DIR/microros_ws"
@@ -45,7 +46,6 @@ install_base_packages() {
 }
 
 prepare_ros_environment() {
-    # shellcheck disable=SC1091
     source "/opt/ros/$ROS_DISTRO/setup.bash"
 }
 
@@ -65,7 +65,6 @@ setup_microros_workspace() {
     rosdep install --from-paths src --ignore-src -y
 
     colcon build
-    # shellcheck disable=SC1091
     source install/local_setup.bash
 
     ros2 run micro_ros_setup create_agent_ws.sh

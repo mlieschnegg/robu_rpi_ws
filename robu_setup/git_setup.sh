@@ -5,7 +5,8 @@
 echo "Installing git and cloning repositories"
 echo "Please wait..."
 
-source "rpi_detect.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/rpi_detect.sh"
 
 ROBU_RPI_WS="$HOME/work/.robu"
 ROBOCUP_DIR="$HOME/work/robocup"
@@ -74,7 +75,7 @@ clone_repositories() {
 }
 
 setup_shell_environment() {
-    append_once 'source "$HOME/work/.robu/install/setup.bash"'
+    append_once '[ -f "$HOME/work/.robu/install/setup.bash" ] && source "$HOME/work/.robu/install/setup.bash"'
 }
 
 install_raspberry_pi_compiler_fix() {
@@ -98,7 +99,6 @@ build_ros_workspace_if_possible() {
         return
     fi
 
-    # shellcheck disable=SC1090
     source "/opt/ros/${ROS_DISTRO}/setup.bash"
     cd "$ROBOCUP_ROS_WS" || exit 1
     colcon build
@@ -121,10 +121,10 @@ build_teensy_workspace_if_possible() {
 
 main() {
     install_packages
+    ensure_github_auth
     clone_repositories
     setup_autostart
     setup_shell_environment
-    ensure_github_auth
     install_raspberry_pi_compiler_fix
     build_ros_workspace_if_possible
     build_teensy_workspace_if_possible

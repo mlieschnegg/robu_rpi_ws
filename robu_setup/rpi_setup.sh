@@ -4,7 +4,8 @@
 
 echo "Starting setup for Raspberry Pi"
 
-source "rpi_detect.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/rpi_detect.sh"
 
 WORK_DIR="$HOME/work"
 VENV_DIR="$WORK_DIR/.venvs/robu"
@@ -89,7 +90,6 @@ setup_python_venv() {
     fi
 
     source "$VENV_DIR/bin/activate"
-    python -m pip install --upgrade pip setuptools wheel
 }
 
 install_python_packages() {
@@ -119,11 +119,17 @@ setup_user_services() {
 }
 
 setup_fastdds_profile() {
-    if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard_v0; print(is_robuboard_v0())" | grep -q "True"; then
-        local line='export FASTRTPS_DEFAULT_PROFILES_FILE="$HOME/work/.robu/config/fastdds.xml"'
-        if ! grep -Fq 'FASTRTPS_DEFAULT_PROFILES_FILE=' "$HOME/.bashrc" 2>/dev/null; then
-            echo "$line" >> "$HOME/.bashrc"
+    if /usr/bin/python3 -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('robuboard') else 1)"; then
+        if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard_v0; print(is_robuboard_v0())" 2>/dev/null | grep -q "True"; then
+            local line='export FASTRTPS_DEFAULT_PROFILES_FILE="$HOME/work/.robu/config/fastdds.xml"'
+            if ! grep -Fq 'FASTRTPS_DEFAULT_PROFILES_FILE=' "$HOME/.bashrc" 2>/dev/null; then
+                echo "$line" >> "$HOME/.bashrc"
+            fi
+        else
+            echo "Skipping FASTDDS profile export: robuboard detected, but board is not v0 or check returned false."
         fi
+    else
+        echo "Skipping FASTDDS profile export: Python module 'robuboard' is not available yet."
     fi
 }
 
