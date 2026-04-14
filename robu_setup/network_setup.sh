@@ -56,7 +56,6 @@ configure_netplan() {
 network:
   version: 2
   renderer: networkd
-  regulatory-domain: AT
   wifis:
     $IFACE:
       dhcp4: true
