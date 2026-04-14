@@ -129,6 +129,9 @@ main() {
     build_ros_workspace_if_possible
     build_teensy_workspace_if_possible
 
+    git config --global user.email "rcj@htl-kaindorf.at"
+    git config --global user.name "RCJ"
+
     echo "Git setup completed."
 }
 
