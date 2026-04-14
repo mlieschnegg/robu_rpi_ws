@@ -29,6 +29,7 @@ require_raspberry_pi() {
 install_apt_packages() {
     sudo apt install -y rpi.gpio-common python3-rpi.gpio
     sudo apt install -y python3-pip python3-venv python3-dev
+    sudo apt isntall -y python3-smbus2 python3-spidev
 }
 
 ensure_group_and_membership() {
