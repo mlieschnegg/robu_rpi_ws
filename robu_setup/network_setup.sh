@@ -6,17 +6,13 @@ IFACE="wlan0"
 NETPLAN_FILE="/etc/netplan/90-robu.yaml"
 
 is_desktop() {
-    if systemctl is-active --quiet NetworkManager; then
-        return 0
-    fi
-    return 1
+    systemctl is-active --quiet NetworkManager
 }
 
 configure_networkmanager() {
     echo "Desktop-System erkannt -> konfiguriere WLAN mit NetworkManager"
 
-    for NAME in "robotic" "RoboCup" "ROBU" "S-MISC"
-    do
+    for NAME in "robotic" "RoboCup" "ROBU" "S-MISC"; do
         nmcli connection delete "$NAME" 2>/dev/null || true
     done
 
@@ -50,9 +46,9 @@ configure_networkmanager() {
 configure_netplan() {
     echo "Server-System erkannt -> konfiguriere WLAN mit Netplan"
 
-    sudo mkdir -p /etc/netplan
+    mkdir -p /etc/netplan
 
-    sudo tee "$NETPLAN_FILE" > /dev/null <<EOF
+    cat > "$NETPLAN_FILE" <<EOF
 network:
   version: 2
   renderer: networkd
@@ -71,9 +67,9 @@ network:
           password: "#robotic"
 EOF
 
-    sudo chmod 600 "$NETPLAN_FILE"
-    sudo netplan generate
-    sudo netplan apply
+    chmod 600 "$NETPLAN_FILE"
+    netplan generate
+    netplan apply
 
     echo "Netplan-Konfiguration abgeschlossen."
     echo "Datei: $NETPLAN_FILE"
@@ -97,4 +93,4 @@ main() {
     fi
 }
 
-main
+main "$@"
