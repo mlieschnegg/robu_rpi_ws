@@ -26,7 +26,7 @@ require_ros() {
         exit 1
     fi
 
-    for cmd in git meson ninja colcon rosdep; do
+    for cmd in colcon rosdep; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
             echo "Missing required command: $cmd"
             exit 1

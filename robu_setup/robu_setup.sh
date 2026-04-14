@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -e
+set -e
 
 echo "Starting setup for ROBU"
 
@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/rpi_detect.sh"
 
 WORK_DIR="$HOME/work"
 VENV_DIR="$WORK_DIR/.venvs/robu"
-
+SYS_PYTHON="/usr/bin/python3"
 
 setup_venv_auto_activate() {
     local line='if [ -d "$HOME/work/.venvs/robu" ] && [ -z "$VIRTUAL_ENV" ]; then source "$HOME/work/.venvs/robu/bin/activate"; fi'
@@ -25,14 +25,36 @@ setup_keyboard() {
 }
 
 install_base_packages() {
+    sudo apt update
+
     sudo apt install -y openssh-server
     sudo systemctl enable --now ssh
 
-    sudo apt install -y git btop tmux neovim ncdu
-    sudo apt install -y python3-pip python3-venv python3-opencv python3-numpy python3-dev
-    sudo apt install -y v4l-utils p7zip-full curl software-properties-common
+    sudo apt install -y \
+        git \
+        btop \
+        tmux \
+        neovim \
+        ncdu \
+        python3-pip \
+        python3-venv \
+        python3-opencv \
+        python3-numpy \
+        python3-dev \
+        python3-pillow \
+        v4l-utils \
+        p7zip-full \
+        curl \
+        wget \
+        software-properties-common
 
-    if ! is_raspberry_pi; then
+    if is_raspberry_pi; then
+        sudo apt install -y \
+            python3-smbus2 \
+            python3-rpi.gpio \
+            python3-spidev \
+            i2c-tools
+    else
         sudo apt install -y terminator rpi-imager
     fi
 }
@@ -45,16 +67,68 @@ setup_python_venv() {
     fi
 
     source "$VENV_DIR/bin/activate"
+    python -m pip install --upgrade pip
+}
+
+install_system_python_pkg_if_missing() {
+    local module_name="$1"
+    local pip_name="${2:-$1}"
+
+    if $SYS_PYTHON -c "import ${module_name}" >/dev/null 2>&1; then
+        echo "[ROBU] System Python package already present: ${module_name}"
+        return 0
+    fi
+
+    echo "[ROBU] Installing system Python package via pip: ${pip_name}"
+    sudo $SYS_PYTHON -m pip install --break-system-packages "$pip_name"
+}
+
+install_venv_python_pkg_if_missing() {
+    local module_name="$1"
+    local pip_name="${2:-$1}"
+
+    source "$VENV_DIR/bin/activate"
+
+    if python -c "import ${module_name}" >/dev/null 2>&1; then
+        echo "[ROBU] Venv Python package already present: ${module_name}"
+        return 0
+    fi
+
+    echo "[ROBU] Installing venv Python package: ${pip_name}"
+    python -m pip install "$pip_name"
+}
+
+install_runtime_sensor_packages() {
+    if ! is_raspberry_pi; then
+        return
+    fi
+
+    #
+    # ROS-/Runtime-relevante Sensorpakete:
+    # müssen für /usr/bin/python3 verfügbar sein
+    #
+
+    install_system_python_pkg_if_missing "rpi_ws281x" "rpi_ws281x"
+
+    # SparkFun VL53L5CX
+    install_system_python_pkg_if_missing "qwiic_vl53l5cx" "git+https://github.com/sparkfun/Qwiic_VL53L5CX_Py.git"
+
+    # Bei Bedarf später ergänzen:
+    # install_system_python_pkg_if_missing "adafruit_vl53l1x" "adafruit-circuitpython-vl53l1x"
+    # install_system_python_pkg_if_missing "adafruit_vl53l0x" "adafruit-circuitpython-vl53l0x"
+    # install_system_python_pkg_if_missing "adafruit_vl53l4cd" "adafruit-circuitpython-vl53l4cd"
 }
 
 install_python_packages() {
-    source "$VENV_DIR/bin/activate"
-    python -m pip install pillow rpi_ws281x
+    #
+    # Venv nur für Dev-/Hilfspakete
+    #
+    # install_venv_python_pkg_if_missing "PIL" "pillow"
 
-    if is_raspberry_pi; then
-        python -m pip install smbus2 RPi.GPIO
-        python -m pip install git+https://github.com/sparkfun/Qwiic_VL53L5CX_Py.git
-    fi
+    #
+    # ROS-/Runtime-relevante Pakete systemweit
+    #
+    install_runtime_sensor_packages
 }
 
 install_pc_tools() {
@@ -62,8 +136,8 @@ install_pc_tools() {
         return
     fi
 
-    sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
-    sudo apt install -y --install-recommends kicad
+    # sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
+    # sudo apt install -y --install-recommends kicad
 
     sudo snap install gimp
     sudo snap install code --classic
@@ -92,14 +166,14 @@ install_exaloop() {
 run_sub_setup_scripts() {
     for script in git_setup.sh ros_setup.sh microros_setup.sh; do
         if [ -f "$SCRIPT_DIR/$script" ]; then
-            . "$SCRIPT_DIR/$script"
+            bash "$SCRIPT_DIR/$script"
         else
             echo "Skipping missing script: $script"
         fi
     done
 
     if ! is_raspberry_pi && [ -f "$SCRIPT_DIR/machine_learning_setup.sh" ]; then
-        . "$SCRIPT_DIR/machine_learning_setup.sh"
+        bash "$SCRIPT_DIR/machine_learning_setup.sh"
     fi
 }
 
@@ -125,6 +199,8 @@ apply_runtime_device_permissions() {
     [ -e /dev/video0 ] && sudo chmod a+rw /dev/video0
     [ -e /dev/ttyUSB0 ] && sudo chmod a+rw /dev/ttyUSB0
     [ -e /dev/mem ] && sudo chmod a+rw /dev/mem
+    [ -e /dev/spidev0.0 ] && sudo chmod a+rw /dev/spidev0.0
+    [ -e /dev/spidev0.1 ] && sudo chmod a+rw /dev/spidev0.1
 }
 
 install_pishrink() {
@@ -132,6 +208,20 @@ install_pishrink() {
     wget -O pishrink.sh https://raw.githubusercontent.com/Drewsif/PiShrink/master/pishrink.sh
     sudo install -m 755 pishrink.sh /usr/local/bin/pishrink.sh
     rm -f pishrink.sh
+}
+
+print_runtime_checks() {
+    if ! is_raspberry_pi; then
+        return
+    fi
+
+    echo
+    echo "Runtime checks:"
+    echo "  /usr/bin/python3 -c \"import smbus2\""
+    echo "  /usr/bin/python3 -c \"import RPi.GPIO\""
+    echo "  /usr/bin/python3 -c \"import spidev\""
+    echo "  /usr/bin/python3 -c \"import rpi_ws281x\""
+    echo "  /usr/bin/python3 -c \"import qwiic_vl53l5cx\""
 }
 
 main() {
@@ -147,8 +237,14 @@ main() {
     run_sub_setup_scripts
     setup_shell_and_permissions
     apply_runtime_device_permissions
-    install_pishrink
 
+    if is_raspberry_pi; then
+        install_pishrink
+    fi
+
+    print_runtime_checks
+
+    echo
     echo "Setup completed successfully!"
     echo "Python venv: $VENV_DIR"
     echo "Activate with: source $VENV_DIR/bin/activate"
