@@ -4,7 +4,7 @@ from neopixel.common.neopixel_spi_write import neopixel_spi_write
 import time
 import sys
 
-from smbus3 import smbus3 as smbus
+from smbus2 import smbus2 as smbus
 import spidev
 
 import subprocess
