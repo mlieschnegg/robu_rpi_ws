@@ -42,7 +42,7 @@ require_commands() {
 
 install_base_packages() {
     sudo apt update
-    sudo apt install -y python3-pip python3-rosdep libusb-dev
+    sudo apt install -y python3-pip python3-rosdep libusb-dev python3-yaml python3-jinja2  python3-typeguard
 }
 
 prepare_ros_environment() {
