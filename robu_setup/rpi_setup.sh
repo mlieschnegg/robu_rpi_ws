@@ -37,7 +37,11 @@ install_apt_packages() {
         python3-dev \
         python3-smbus2 \
         python3-spidev \
-        i2c-tools
+        i2c-tools \
+        python3-lgpio \
+        python3-yaml \
+        python3-jinja2 \
+        python3-typeguard
 }
 
 ensure_group_and_membership() {
