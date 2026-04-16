@@ -48,7 +48,7 @@ configure_netplan() {
 
     mkdir -p /etc/netplan
 
-    cat > "$NETPLAN_FILE" <<EOF
+    cat <<EOF | sudo tee /etc/netplan/90-robu.yaml > /dev/null
 network:
   version: 2
   renderer: networkd
@@ -66,7 +66,6 @@ network:
         "robotic":
           password: "#robotic"
 EOF
-
     chmod 600 "$NETPLAN_FILE"
     netplan generate
     netplan apply
