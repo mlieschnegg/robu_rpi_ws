@@ -84,7 +84,7 @@ camera_auto_detect=0
 dtoverlay=imx219,cam0
 dtoverlay=imx219,cam1
 
-# enable uart for dynamixel motors on robubaord
+# enable uart for dynamixel motors on robuboard
 dtoverlay=uart3
 
 # enable uart for lidar ld19 on robuboard 
@@ -97,7 +97,8 @@ dtoverlay=uart3
 
 [cm5]
 # Enable 5V voltage regulator on robuboard
-dtoverlay=spi1-1cs #Ist SPI1 am GPIO10, SPIO wird intern vom CM5 verwendet!
+dtparam=spi=on #Aktiviert SPI0 und SPI1
+#dtoverlay=spi0-1cs #Geht nicht!
 gpio=26=op,dh
 dtoverlay=dwc2,dr_mode=host
 
@@ -108,7 +109,8 @@ dtoverlay=imx219,cam0
 dtoverlay=imx219,cam1
 #dtoverlay=imx708_cam1_ubuntu
 
-dtoverlay=uart3
+# enable uart for dynamixel motors on robuboard
+dtoverlay=uart2 #UART2 ist an GPIO4 und GPIO5 -> beim CM4 ist es uart3
 
 #dtoverlay=cam1_imx708_bus_fix
 #dtoverlay=imx708_cam1_full
