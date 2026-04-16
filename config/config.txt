@@ -97,8 +97,8 @@ dtoverlay=uart3
 
 [cm5]
 # Enable 5V voltage regulator on robuboard
-dtparam=spi=on #Aktiviert SPI0 und SPI1
-#dtoverlay=spi0-1cs #Geht nicht!
+#dtparam=spi=on #Aktiviert SPI0 und SPI1
+dtoverlay=spi0-0cs
 gpio=26=op,dh
 dtoverlay=dwc2,dr_mode=host
 
