@@ -11,6 +11,7 @@ from neopixel.common.neopixel_spi_write import neopixel_spi_write
 import time
 import sys
 import subprocess
+import os
 
 from smbus2 import smbus2 as smbus
 import spidev
@@ -90,6 +91,22 @@ def _gpio_read_once(pin: int, retries: int = 3, delay: float = 0.01) -> int:
 
     raise RuntimeError(f"Failed to read GPIO {pin} after {retries} retries: {last_error}")
 
+def _open_spi_for_led():
+    candidates = [
+        (1, 0, "/dev/spidev1.0"),  # CM5 typisch
+        (0, 0, "/dev/spidev0.0"),  # CM4 typisch
+    ]
+
+    for bus, dev, path in candidates:
+        if os.path.exists(path):
+            try:
+                spi = spidev.SpiDev()
+                spi.open(bus, dev)
+                return spi, path
+            except Exception as e:
+                print(f"SPI {path} exists but failed to open: {e}")
+
+    raise RuntimeError("No usable SPI device found")
 
 def init_gpios():
     global robuboard_init_gpios
@@ -328,8 +345,10 @@ def set_status_led(r: int = 50, g: int = 10, b: int = 0, w: int = 0):
         status_led.show()
 
     elif IS_ROBUBOARD_V1:
-        spi = spidev.SpiDev()
-        spi.open(0, 0)
+        # spi = spidev.SpiDev()
+        # spi.open(0, 0)
+        spi, path = _open_spi_for_led()
+
         neopixel_spi_write(spi, [[g, r, b]])
         # spi.close()
 
