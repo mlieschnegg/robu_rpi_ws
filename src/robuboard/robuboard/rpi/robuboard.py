@@ -6,7 +6,7 @@ from robuboard.rpi.utils import (
     is_bootloader_teensy,
     is_serial_teensy,
 )
-from robuboard.rpi.utils import IS_ROBUBOARD_V1, IS_ROBUBOARD
+from robuboard.rpi.utils import IS_ROBUBOARD_V1, IS_ROBUBOARD, GPIOCHIP_HANLDE
 from neopixel.common.neopixel_spi_write import neopixel_spi_write
 import time
 import sys
@@ -41,7 +41,7 @@ def _gpio_write_once(pin: int, value: int, retries: int = 3, delay: float = 0.01
     last_error = None
 
     for attempt in range(retries):
-        handle = lgpio.gpiochip_open(0)
+        handle = lgpio.gpiochip_open(GPIOCHIP_HANLDE)
         try:
             lgpio.gpio_claim_output(handle, pin, value)
             lgpio.gpio_write(handle, pin, value)
@@ -71,7 +71,7 @@ def _gpio_read_once(pin: int, retries: int = 3, delay: float = 0.01) -> int:
     last_error = None
 
     for attempt in range(retries):
-        handle = lgpio.gpiochip_open(0)
+        handle = lgpio.gpiochip_open(GPIOCHIP_HANLDE)
         try:
             lgpio.gpio_claim_input(handle, pin)
             return lgpio.gpio_read(handle, pin)
@@ -158,6 +158,7 @@ def get_power_switch() -> bool:
 
 def power_off_robuboard():
     init_gpios()
+    print(f"handle: {GPIOCHIP_HANLDE}")
     enable_5v_supply()
     print("Powering off RobuBoard ...")
     subprocess.run(["sync"])
@@ -315,7 +316,7 @@ def upload_firmware_teensy(
     firmware_path: str = "/home/robu/work/robocup/robocup-teensy/.pio/build/teensymm/firmware.hex"
 ):
     init_gpios()
-    enable_5v_supply()
+    ()
     print("uploading firmware to teensy...")
     subprocess.run(["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", "-w", firmware_path])
 

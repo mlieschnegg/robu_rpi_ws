@@ -11,6 +11,11 @@ import select
 import sys
 import math
 
+import lgpio
+from pathlib import Path
+import re
+import subprocess
+
 if os.name != 'nt':
     import termios
     import tty
@@ -19,10 +24,52 @@ if os.name != 'nt':
 global IS_ROBUBOARD_V0
 global IS_ROBUBOARD_V1
 global IS_ROBUBOARD
+global GPIOCHIP_HANLDE
 
 IS_ROBUBOARD_V0:bool = False
 IS_ROBUBOARD_V1:bool = False
 IS_ROBUBOARD:bool = False
+
+def get_pi_model() -> str:
+    path = Path("/proc/device-tree/model")
+    if path.exists():
+        return path.read_text(errors="ignore").strip("\x00\n")
+    return "Unknown"
+
+def find_header_gpiochip() -> int:
+    detect = subprocess.run(
+        ["gpiodetect"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+
+    chips = []
+    for line in detect.stdout.splitlines():
+        m = re.match(r"^(gpiochip\d+)", line.strip())
+        if m:
+            chips.append(m.group(1))
+
+    required = {"GPIO2", "GPIO3", "GPIO17", "GPIO27"}
+
+    for chip in chips:
+        info = subprocess.run(
+            ["gpioinfo", chip],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        names = set(re.findall(r'"([^"]+)"', info.stdout))
+        if required.issubset(names):
+            return int(chip.replace("gpiochip", ""))
+
+    raise RuntimeError("40-Pin-Header-gpiochip nicht gefunden")
+
+def open_header_gpiochip():
+    model = get_pi_model()
+    chip = find_header_gpiochip()
+    handle = lgpio.gpiochip_open(chip)
+    return model, chip, handle
 
 def _ping_worker(bus, address, result):
     """
@@ -156,6 +203,7 @@ def wrap_pi(angle_rad: float) -> float:
     return angle_rad
 
 is_robuboard()
+GPIOCHIP_HANLDE = find_header_gpiochip()
 
 if __name__ == '__main__':
     print("Is Raspberry Pi: ", is_raspberry_pi())
@@ -166,3 +214,11 @@ if __name__ == '__main__':
     print("Is ROBU-Board V1: ", is_robuboard_v1())
     print("I2C-Ping: ", i2c_ping(1, 0x41, 0.1))
 
+    model, chip, h = open_header_gpiochip()
+    print("Modell:", model)
+    print("Header gpiochip:", chip)
+    lgpio.gpiochip_close(h)
+#    gpio = 17  # BCM GPIO17
+#    lgpio.gpio_claim_output(h, gpio)
+#    lgpio.gpio_write(h, gpio, 1)
+#    lgpio.gpiochip_close(h)

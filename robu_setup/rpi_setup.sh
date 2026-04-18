@@ -32,6 +32,7 @@ install_apt_packages() {
     sudo apt install -y \
         rpi.gpio-common \
         python3-rpi.gpio \
+        gpiod \
         python3-pip \
         python3-venv \
         python3-dev \
