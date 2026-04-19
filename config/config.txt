@@ -41,7 +41,7 @@ hdmi_force_hotplug=1
 #hdmi_mode=82
 
 [pi4]
-dtoverlay=spi0-1cs
+dtoverlay=spi0-0cs
 max_framebuffers=2
 arm_boost=1
 
@@ -51,8 +51,8 @@ core_freq_min=500
 # Display on DS1
 dtoverlay=vc4-kms-dsi-7inch
 
-#dtoverlay=imx219,cam0
-dtoverlay=ov5647,cam0
+dtoverlay=imx219,cam0
+#dtoverlay=ov5647,cam0
 
 [pi3+]
 # Use a smaller contiguous memory area, specifically on the 3A+ to avoid an
@@ -68,7 +68,8 @@ dtoverlay=vc4-kms-v3d,cma-128
 [cm4]
 # Enable 5V voltage regulator on robuboard
 gpio=26=op,dh
-dtoverlay=spi0-1cs #Ist SPI0 am GPIO10
+# spi0 at gpio10
+dtoverlay=spi0-0cs
 
 # Enable the USB2 outputs on the IO board (assuming your CM4 is plugged into
 # such a board)
@@ -97,9 +98,9 @@ dtoverlay=uart3
 
 [cm5]
 # Enable 5V voltage regulator on robuboard
-#dtparam=spi=on #Aktiviert SPI0 und SPI1
-dtoverlay=spi0-0cs
 gpio=26=op,dh
+# Enable SPI0 to communicate with the rgbw leds (sk6812) connected to the robuboard
+dtoverlay=spi0-0cs
 dtoverlay=dwc2,dr_mode=host
 
 dtparam=i2c_csi_dsi0=on
@@ -109,8 +110,8 @@ dtoverlay=imx219,cam0
 dtoverlay=imx219,cam1
 #dtoverlay=imx708_cam1_ubuntu
 
-# enable uart for dynamixel motors on robuboard
-dtoverlay=uart2 #UART2 ist an GPIO4 und GPIO5 -> beim CM4 ist es uart3
-
+# enable uart2 for to commuicate with dynamixel motors connected to the robuboard
+# uart2 ist an GPIO4 und GPIO5 -> beim CM4 ist es uart3
+dtoverlay=uart2-pi5
 #dtoverlay=cam1_imx708_bus_fix
 #dtoverlay=imx708_cam1_full
