@@ -42,7 +42,8 @@ install_apt_packages() {
         python3-lgpio \
         python3-yaml \
         python3-jinja2 \
-        python3-typeguard
+        python3-typeguard \
+        gstreamer1.0-tools
 }
 
 ensure_group_and_membership() {

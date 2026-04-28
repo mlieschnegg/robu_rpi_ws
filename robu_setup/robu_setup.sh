@@ -113,6 +113,7 @@ install_runtime_sensor_packages() {
     # SparkFun VL53L5CX
     install_system_python_pkg_if_missing "qwiic_vl53l5cx" "git+https://github.com/sparkfun/Qwiic_VL53L5CX_Py.git"
 
+    # pip install sparkfun-qwiic-vl53l5cx --break-system-packages
     # Bei Bedarf später ergänzen:
     # install_system_python_pkg_if_missing "adafruit_vl53l1x" "adafruit-circuitpython-vl53l1x"
     # install_system_python_pkg_if_missing "adafruit_vl53l0x" "adafruit-circuitpython-vl53l0x"

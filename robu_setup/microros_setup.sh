@@ -98,6 +98,10 @@ install_raspberry_pi_tools() {
     ln -sf "$HOME/.platformio/penv/bin/pio" "$HOME/.local/bin/pio"
     ln -sf "$HOME/.platformio/penv/bin/piodebuggdb" "$HOME/.local/bin/piodebuggdb"
 
+    export PATH="$HOME/.local/bin:$PATH"
+    append_once 'export PATH="$HOME/.local/bin:$PATH"'
+    append_once 'export PATH="$PATH:$HOME/work/.robu/scripts"'
+
     if [ ! -d "$WORK_DIR/teensy_loader_cli" ]; then
         git clone https://github.com/PaulStoffregen/teensy_loader_cli "$WORK_DIR/teensy_loader_cli"
     fi
@@ -105,7 +109,11 @@ install_raspberry_pi_tools() {
     cd "$WORK_DIR/teensy_loader_cli" || exit 1
     make
     sudo install -m 755 teensy_loader_cli /usr/local/bin/teensy_loader_cli
+
+    echo "[ROBU] PlatformIO installed."
+    echo "[ROBU] Current pio path: $(command -v pio || echo 'not found')"
 }
+
 
 main() {
     require_ros
