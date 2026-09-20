@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Apply Python-first VS Code user settings. Run as the desktop user, not root."""
 
+import argparse
 import json
 import os
 from pathlib import Path
@@ -10,7 +11,7 @@ import tempfile
 import json5
 
 
-def configure(settings_path, os_release_path="/etc/os-release"):
+def configure(settings_path, os_release_path="/etc/os-release", remote=False):
     settings_path = Path(settings_path)
     original = settings_path.read_text(encoding="utf-8-sig") if settings_path.exists() else None
     settings = json5.loads(original) if original and original.strip() else {}
@@ -23,10 +24,17 @@ def configure(settings_path, os_release_path="/etc/os-release"):
         "C_Cpp.intelliSenseEngine": "disabled",
         "C_Cpp.intelliSenseCacheSize": 0,
         "C_Cpp.default.browse.limitSymbolsToIncludedHeaders": True,
-        "python.analysis.languageServerMode": "default",
-        "python.analysis.indexing": True,
-        "python.analysis.diagnosticMode": "openFilesOnly",
     })
+    if remote:
+        # On the 2 GB Pi even Pylance light mode can consume too much RAM.
+        # This is written ONLY to the server's Remote User settings.
+        settings["python.languageServer"] = "None"
+    else:
+        settings.update({
+            "python.analysis.languageServerMode": "default",
+            "python.analysis.indexing": True,
+            "python.analysis.diagnosticMode": "openFilesOnly",
+        })
 
     # Match ros_setup.sh without requiring ROS to be installed already.
     # Preserve additional paths, including paths to custom interface packages.
@@ -39,7 +47,7 @@ def configure(settings_path, os_release_path="/etc/os-release"):
     elif 'VERSION_ID="22.04"' in release:
         ros_paths = ["/opt/ros/humble/lib/python3.10/site-packages",
                      "/opt/ros/humble/local/lib/python3.10/dist-packages"]
-    if ros_paths:
+    if ros_paths and not remote:
         paths = settings.setdefault("python.analysis.extraPaths", [])
         if not isinstance(paths, list):
             raise ValueError("python.analysis.extraPaths must be an array; file left unchanged")
@@ -75,7 +83,21 @@ def configure(settings_path, os_release_path="/etc/os-release"):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--remote", action="store_true",
+                        help="Configure Raspberry Pi Remote-SSH settings; disable Python language server")
+    parser.add_argument("--server-dir", type=Path,
+                        help="Custom VS Code server directory (requires --remote)")
+    args = parser.parse_args()
+    if args.server_dir and not args.remote:
+        parser.error("--server-dir requires --remote")
     if os.geteuid() == 0:
         raise SystemExit("Run this helper as the desktop user, without sudo.")
-    config_dir = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-    configure(config_dir / "Code" / "User" / "settings.json")
+    if args.remote:
+        server_dir = args.server_dir or Path(os.environ.get("VSCODE_AGENT_FOLDER")
+                                             or Path.home() / ".vscode-server")
+        configure(server_dir.expanduser() / "data" / "Machine" / "settings.json", remote=True)
+        print("[ROBU] Reconnect Remote-SSH or run Developer: Reload Window to apply.")
+    else:
+        config_dir = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+        configure(config_dir / "Code" / "User" / "settings.json")
