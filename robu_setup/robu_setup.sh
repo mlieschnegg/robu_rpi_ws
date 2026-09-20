@@ -143,6 +143,13 @@ install_pc_tools() {
     sudo snap install gimp
     sudo snap install code --classic
 
+    # User-wide defaults for the image account, before extensions can index files.
+    # JSON5 accepts VS Code settings with comments and trailing commas.
+    sudo apt install -y python3-json5
+    "$SYS_PYTHON" "$SCRIPT_DIR/setup_vscode_settings.py"
+
+    code --install-extension ms-python.python
+    code --install-extension ms-python.vscode-pylance
     code --install-extension platformio.platformio-ide
     code --install-extension ms-vscode-remote.remote-ssh
     code --install-extension ms-vscode-remote.remote-ssh-edit
