@@ -67,6 +67,31 @@ class SettingsTests(unittest.TestCase):
                       settings["python.analysis.extraPaths"])
         self.assertFalse(any("jazzy" in p for p in settings["python.analysis.extraPaths"]))
 
+    def test_remote_disables_language_server_without_changing_desktop(self):
+        desktop = self.run_setup()
+        desktop_bytes = self.settings.read_bytes()
+        remote = self.root / ".vscode-server" / "data" / "Machine" / "settings.json"
+        configure(remote, self.release, remote=True)
+        settings = json.loads(remote.read_text(encoding="utf-8"))
+        self.assertEqual(settings["python.languageServer"], "None")
+        self.assertEqual(settings["C_Cpp.intelliSenseEngine"], "disabled")
+        self.assertNotIn("python.analysis.indexing", settings)
+        self.assertNotIn("python.languageServer", desktop)
+        self.assertEqual(self.settings.read_bytes(), desktop_bytes)
+        timestamp = remote.stat().st_mtime_ns
+        configure(remote, self.release, remote=True)
+        self.assertEqual(remote.stat().st_mtime_ns, timestamp)
+
+    def test_remote_preserves_existing_jsonc_and_backup(self):
+        self.settings.parent.mkdir(parents=True)
+        original = '{ // Remote preferences\n"python.languageServer": "Pylance", "editor.fontSize": 19,}'
+        self.settings.write_text(original, encoding="utf-8")
+        configure(self.settings, self.release, remote=True)
+        settings = json.loads(self.settings.read_text(encoding="utf-8"))
+        self.assertEqual(settings["python.languageServer"], "None")
+        self.assertEqual(settings["editor.fontSize"], 19)
+        self.assertEqual(self.settings.with_name("settings.json.pre-robu.bak").read_text(), original)
+
 
 if __name__ == "__main__":
     unittest.main()
