@@ -1,5 +1,9 @@
 #!/bin/bash
-#set -e #Beendet das Skript bei Fehlern
+# Load all code before fetch/reset can replace the running script.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/update_robu.sh" || exit 1
+
+main() {
 
 export DISPLAY=:0
 export ROBU_RPI_WS=$HOME/work/.robu
@@ -10,24 +14,31 @@ DIR_ROBOCUP_ROS="$HOME/work/robocup/robocup-ros"
 DIR_ROBOCUP_TEENSY="$HOME/work/robocup/robocup-teensy"
 DIR_ROBOCUP_GUI="$HOME/work/robocup/robocup-gui"
 
-#clean temporary files
-rm -rf ~/.cache/vscode-cpptools/*
-rm -rf ~/.cache/pip/*
+# Keep the lock outside the repository so it survives a repair/reclone.
+local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/robu-autostart"
+mkdir -p "$state_dir" || return 1
+exec 9>"$state_dir/update.lock" || return 1
+flock -n 9 || { echo "[ROBU] Another autostart is already running."; return 0; }
 
 #display is always on
 xset s off
 xset -dpms
 xset s noblank
 
-cd $ROBU_RPI_WS
-# git pull
-if ! (git pull | grep -q 'Already up to date.'); then
-    colcon build
+# Load ROS before building; do not depend on interactive shell startup files.
+source /opt/ros/jazzy/setup.bash || return 1
+if ! robu_update_and_build "$ROBU_RPI_WS" \
+    "https://github.com/mlieschnegg/robu_rpi_ws.git" "$state_dir" \
+    > "$state_dir/last-update.log" 2>&1; then
+    cat "$state_dir/last-update.log"
+    echo "[ROBU] Update/build failed; see $state_dir/last-update.log"
+    return 1
 fi
-
-if [[ ! -d "$ROBU_RPI_WS/install" ]]; then
-    colcon build
-fi
+cat "$state_dir/last-update.log"
+[[ -f "$ROBU_RPI_WS/install/setup.bash" ]] || {
+    echo "[ROBU] No usable installation available."
+    return 1
+}
 
 # Prüfen, ob der Prozess "screen" existiert
 #if pgrep screen > /dev/null; then
@@ -36,7 +47,7 @@ fi
 #killall -9 /usr/bin/python3
 
 source /opt/ros/jazzy/setup.bash
-source $ROBU_RPI_WS/install/setup.bash
+source "$ROBU_RPI_WS/install/setup.bash" || return 1
 
 if [[ -d "$DIR_MICRO_ROS" ]]; then
     source $DIR_MICRO_ROS/install/local_setup.bash
@@ -87,4 +98,6 @@ fi
 sudo cp $ROBU_RPI_WS/config/config.txt /boot/firmware/config.txt
 sudo rm -rf ~/work/robu_lab*/
 sync
+}
 
+main "$@"
