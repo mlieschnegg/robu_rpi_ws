@@ -42,6 +42,7 @@ install_apt_packages() {
         python3-lgpio \
         python3-yaml \
         python3-jinja2 \
+        python3-json5 \
         python3-typeguard \
         gstreamer1.0-tools
 }
@@ -228,9 +229,15 @@ print_runtime_checks() {
     echo "  /usr/bin/python3 -c \"import adafruit_vl53l1x\""
 }
 
+setup_vscode_remote() {
+    # Pre-create Remote User settings, even before the first SSH connection.
+    "$SYS_PYTHON" "$SCRIPT_DIR/setup_vscode_settings.py" --remote
+}
+
 main() {
     require_raspberry_pi
     install_apt_packages
+    setup_vscode_remote
     setup_groups
     setup_udev_rules
     setup_runtime_permissions

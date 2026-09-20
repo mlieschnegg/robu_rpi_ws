@@ -1,5 +1,45 @@
 # VS Code im Schueler-Image
 
+## Raspberry Pi: Remote-SSH mit wenig RAM
+
+`rpi_setup.sh` installiert `python3-json5` und ruft den gemeinsamen Helfer mit
+`--remote` auf. Er legt fuer den ausfuehrenden Pi-Benutzer bereits vor der ersten
+Remote-Verbindung `~/.vscode-server/data/Machine/settings.json` an bzw. ergaenzt
+die vorhandene Datei:
+
+```json
+{
+    "python.languageServer": "None",
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "C_Cpp.intelliSenseCacheSize": 0,
+    "C_Cpp.default.browse.limitSymbolsToIncludedHeaders": true
+}
+```
+
+Damit laufen die Python-Sprachdienste (einschliesslich Pylance) auf dem Pi nicht.
+Pylance-Autovervollstaendigung, Typanalyse und Navigation fehlen dort bewusst;
+Python-Ausfuehrung, ROS-Builds und Interface-Generierung bleiben verfuegbar.
+Die lokalen PC-Einstellungen und gemeinsame Projektdateien werden nicht geaendert.
+Die Vorgabe gilt fuer alle Clients, die sich als dieser Benutzer mit dem Pi verbinden.
+Projekt-Einstellungen koennen sie uebersteuern: dort kein anderes
+`python.languageServer` setzen. `light` allein war fuer den 2-GB-Pi nicht ausreichend.
+
+Auf einem bestehenden Pi nach `git pull` als Remote-Benutzer (ohne sudo) ausfuehren:
+
+```bash
+sudo apt install -y python3-json5
+/usr/bin/python3 ~/work/.robu/robu_setup/setup_vscode_settings.py --remote
+```
+
+Danach Remote-SSH neu verbinden oder `Developer: Reload Window` ausfuehren.
+Wird `.vscode-server` geloescht, muss der Helfer erneut ausgefuehrt werden.
+Bei abweichendem Server-Verzeichnis wird `VSCODE_AGENT_FOLDER` beruecksichtigt;
+alternativ `--remote --server-dir /pfad/zum/server` angeben. Fuer VS Code Insiders
+zum Beispiel `--server-dir ~/.vscode-server-insiders` verwenden. Es wird kein
+VS-Code-Server installiert und keine laufende Sitzung zwangsweise beendet.
+
+## Lokaler Entwicklungsrechner
+
 `robu_setup.sh` installiert auf dem PC Python und Pylance und ruft
 `setup_vscode_settings.py` als Desktop-Benutzer auf. Das gesamte Setup wie bisher
 ohne `sudo` starten; einzelne Installationsschritte verwenden selbst `sudo`.
