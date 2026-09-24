@@ -107,8 +107,12 @@ Das Skript führt außerdem Paket-Upgrades aus. Vor Benutzung lesen.
 
 ## GitHub-Zugang vor Weitergabe
 
-Das Vorbereitungsskript benötigt `gh` mit Unterstützung für
-`gh auth status --json hosts`, Python 3 und Git. Es prüft alle in der aktuellen
+Das Vorbereitungsskript benötigt `gh`, Python 3 und Git. Neuere gh-Versionen
+werden über `gh auth status --json hosts` geprüft; bei älteren Versionen ohne
+`--json` wird die englische Textausgabe einschließlich stderr ausgewertet.
+Unbekannte Ausgaben führen zum Abbruch. Fehlt auch `logout --user`, wird nur
+dann der Host abgemeldet, wenn ausschließlich `mlieschnegg` gemeldet wird.
+`techtitans-htlk` darf angemeldet bleiben. Es prüft alle in der aktuellen
 GitHub-CLI-Konfiguration gespeicherten github.com-Konten (auch inaktive), meldet
 `mlieschnegg` mit `gh auth logout` lokal ab und kontrolliert den Status erneut.
 Konfigurierte Git-Credential-Helper werden über `git credential reject` zum
