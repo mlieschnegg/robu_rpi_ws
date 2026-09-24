@@ -46,10 +46,12 @@ for tool in gh python3 git; do
   command -v "$tool" >/dev/null || fail_github "$tool fehlt; bitte installieren und erneut starten."
 done
 github_cli() {
-  env -u GH_TOKEN -u GITHUB_TOKEN GH_PROMPT_DISABLED=1 gh "$@"
+  env -u GH_TOKEN -u GITHUB_TOKEN GH_PROMPT_DISABLED=1 NO_COLOR=1 LC_ALL=C gh "$@"
 }
 github_accounts() {
-  github_cli auth status --hostname github.com --json hosts | python3 -c '
+  local status output
+  if output=$(github_cli auth status --hostname github.com --json hosts 2>&1); then
+    printf '%s\n' "$output" | python3 -c '
 import json, sys
 try:
     hosts = json.load(sys.stdin)["hosts"]
@@ -66,13 +68,46 @@ try:
 except (ValueError, KeyError, TypeError, AttributeError):
     sys.exit("GitHub-Konten konnten nicht eindeutig ermittelt werden.")
 '
+    return
+  fi
+  # Nur bei einer tatsächlich fehlenden JSON-Option zurückfallen.
+  [[ "$output" == *"unknown flag: --json"* ]] || return 1
+  status=0
+  output=$(github_cli auth status --hostname github.com 2>&1) || status=$?
+  printf '%s\n' "$output" | python3 -c '
+import re, sys
+text = sys.stdin.read()
+status = int(sys.argv[1])
+# Alte gh-Versionen schreiben auch erfolgreiche Statusausgaben nach stderr.
+empty = ("You are not logged into any GitHub hosts. To log in, run: gh auth login",
+         "You are not logged into any GitHub hosts. Run gh auth login to authenticate.",
+         "You are not logged into any accounts on github.com")
+if text.strip() in empty and status in (0, 1):
+    sys.exit(0)
+accounts = re.findall(r"^\s*(?:[✓✔]\s*)?Logged in to github\.com (?:account|as) ([A-Za-z0-9-]+)(?=\s|$)", text, re.M)
+# Fehler, unbekannte Ausgabe und unvollständig erkannte Kontenzeilen nie
+# als erfolgreiche Abmeldung behandeln. Tokenzeilen nicht ausgeben.
+if status != 0 or not accounts or len(accounts) != text.count("Logged in to"):
+    sys.exit("GitHub-Textstatus konnte nicht eindeutig ausgewertet werden.")
+if re.search(r"failed|error|timeout|unable", text, re.I):
+    sys.exit("GitHub-Status meldet einen Fehler.")
+print("\n".join(accounts))
+' "$status"
 }
 echo "==> Prüfe GitHub-Anmeldung von mlieschnegg ..."
-accounts=$(github_accounts) || fail_github 'Kontenprüfung nicht möglich (aktuelle gh-Version erforderlich).'
+accounts=$(github_accounts) || fail_github 'Kontenprüfung nicht möglich; GitHub-Status unbekannt oder fehlerhaft.'
 while IFS= read -r account; do
   if [[ "${account,,}" == mlieschnegg ]]; then
     echo "==> Melde GitHub-Konto $account lokal ab ..."
-    github_cli auth logout --hostname github.com --user "$account" </dev/null || fail_github 'Abmeldung nicht möglich.'
+    logout_help=$(github_cli auth logout --help) || fail_github 'Logout-Optionen nicht ermittelbar.'
+    if [[ "$logout_help" == *--user* ]]; then
+      github_cli auth logout --hostname github.com --user "$account" </dev/null || fail_github 'Abmeldung nicht möglich.'
+    else
+      # Alte gh-Versionen kennen nur ein Konto pro Host. Niemals einen ganzen
+      # Host abmelden, wenn die Statusausgabe noch ein anderes Konto aufführt.
+      [[ "$accounts" == "$account" ]] || fail_github 'Diese gh-Version kann Konten nicht einzeln abmelden.'
+      github_cli auth logout --hostname github.com </dev/null || fail_github 'Abmeldung nicht möglich.'
+    fi
   fi
 done <<< "$accounts"
 accounts=$(github_accounts) || fail_github 'Abmeldung konnte nicht überprüft werden.'
