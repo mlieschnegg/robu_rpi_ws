@@ -1,12 +1,16 @@
 # SD-Karte sichern und Rückschreiben prüfen
 
+**Für die Übergabe an Schüler:** [Rettungsablauf und Fehlerbehandlung](RETTUNG_UEBERGABE.md).
+Die vollständige Befehlsübersicht zeigt `./make_pi_image.sh --help`.
+
 Die Quelle muss sauber heruntergefahren sein. Die SD-Karte an einem anderen
 Linux-Rechner lesen und **alle** Partitionen aushängen; Desktop-Automount während
 der Sicherung deaktivieren. Kein Live-Backup des laufenden Raspberry Pi.
 `sync` allein ersetzt weder Herunterfahren noch Aushängen.
 
 Benötigt: Bash, Python 3, util-linux, coreutils, e2fsprogs, dosfstools, gzip;
-für `--shrink` zusätzlich ein lokal installiertes, vertrauenswürdiges PiShrink.
+für `--shrink` und `--resume` zusätzlich ein lokal installiertes, vertrauenswürdiges
+PiShrink: [offizielle Installationsanleitung](https://github.com/Drewsif/PiShrink#installation).
 Unterstützt wird das übliche Layout mit DOS/MBR, FAT als erster und ext4 als
 zweiter Partition, mit 512-Byte-Sektoren. Andere Layouts werden abgelehnt.
 
@@ -14,8 +18,9 @@ zweiter Partition, mit 512-Byte-Sektoren. Andere Layouts werden abgelehnt.
 sudo ./make_pi_image.sh -d /dev/sdX -o /mnt/ssd/raspi.img --shrink
 ```
 
-Die Sicherung überschreibt keine vorhandenen Ausgaben. Sie liest die Quelle
-zweimal, vergleicht die Rohkopie und prüft Partitionierungsgrenzen sowie FAT/ext4.
+Die Sicherung überschreibt keine vorhandenen Ausgaben. Sie kopiert jeweils 1 GiB (1.073.741.824 Bytes) und vergleicht diesen Abschnitt
+sofort mit einer erneuten direkten Lesung der Quelle. Der letzte Abschnitt kann
+kleiner sein. Danach prüft sie Partitionierungsgrenzen sowie FAT/ext4.
 Danach bleibt die geprüfte Rohkopie als `raspi.img` mit `.sha256` und `.bytes`
 dauerhaft erhalten. PiShrink verändert ausschließlich eine separate Arbeitskopie.
 Diese wird erneut geprüft und erst danach komprimiert. Die erfolgreiche Ausgabe
@@ -38,12 +43,12 @@ erstellte geprüfte Rohkopie lässt sich so nachträglich verkleinern.
 Ein Fehler beim ursprünglichen Lesen, Quellvergleich oder der ersten
 Dateisystemprüfung erzeugt dagegen keine freigegebene Rohkopie für `--resume`.
 
-Ohne Shrink wird vorsorglich Platz für die ganze Karte plus 1 GiB verlangt.
-Mit Shrink sind es drei Kartengrößen plus 1 GiB (Rohkopie, Arbeitskopie und
-komprimierte Ausgabe); beim Wiederaufnehmen zwei zusätzliche Kartengrößen plus
-1 GiB. Reflinks werden genutzt, wenn das SSD-Dateisystem sie unterstützt,
-sodass die Arbeitskopie dort zunächst wenig zusätzlichen Platz benötigt.
-Die konservative Platzprüfung setzt diese Unterstützung nicht voraus.
+Der freie Speicher wird pro Arbeitsschritt geprüft: vor der Rohkopie für die
+Quellkartengröße, vor der Shrink-Kopie für die Rohimage-Größe und vor gzip für
+das tatsächlich verkleinerte Image. Jede Prüfung berücksichtigt 1 GiB Reserve;
+bei gzip kommen 0,1 % plus 1 MiB für möglichen Kompressions-Overhead dazu.
+Bei `--check-existing` entfällt das Kopieren des Rohimages. Reflinks werden
+wenn möglich genutzt, bei der Platzprüfung aber nicht vorausgesetzt.
 
 Fehler werden nicht automatisch repariert. Eine vorhandene endgültige
 `.gz`-Ausgabe oder deren Begleitdateien werden auch mit `--resume` nicht
@@ -138,3 +143,39 @@ Kopie mit Zugangsdaten weitergegeben wurde, den Zugang bei GitHub widerrufen.
 Referenzen: [gh auth status](https://cli.github.com/manual/gh_auth_status),
 [gh auth logout](https://cli.github.com/manual/gh_auth_logout),
 [git credential](https://git-scm.com/docs/git-credential).
+
+## Vorhandenes ddrescue-Image prüfen und übernehmen
+
+Den ddrescue-Lauf vorher beenden; während der Prüfung weder das Image noch die
+Originalkarte verändern. Alle Partitionen der Originalkarte aushängen.
+
+```bash
+sudo ./make_pi_image.sh --check-existing -d /dev/mmcblk0 \
+  -o /media/mlieschnegg/LI/rpi_image/robot-server-rescue.img
+```
+
+Der Modus liest das vorhandene vollständige Rohimage und vergleicht es GiB-weise
+mit direkten Lesungen der Originalkarte. Es erfolgt keine erneute Vollkopie.
+Image und ddrescue-Map bleiben unverändert; die Map wird nicht ausgewertet.
+Die Image-Größe muss exakt der Quellkartengröße entsprechen. Vorhandene
+`.sha256`-/`.bytes`-Dateien werden nicht überschrieben.
+Bei Abweichungen oder Lesefehlern stoppt die Prüfung mit Abschnitt und absolutem
+Byte-Offset. Es gibt keine automatischen Wiederholungen, Mehrheitsentscheidung
+oder Reparaturen. Ein übereinstimmender Vergleich ist keine Garantie gegen
+wiederholt identische falsche Lesedaten oder bereits beschädigte Dateiinhalte.
+
+Erst nach erfolgreichem Vergleich aller Abschnitte UND den Dateisystemprüfungen
+werden `.sha256` und `.bytes` erzeugt. Anschließend ist das normale Shrink-Resume
+möglich, ohne die Karte nochmals zu lesen:
+
+```bash
+sudo ./make_pi_image.sh --resume \
+  -o /media/mlieschnegg/LI/rpi_image/robot-server-rescue.img
+```
+
+Alternativ beim ersten `--check-existing` gleich `--shrink` ergänzen. PiShrink
+arbeitet weiterhin ausschließlich auf einer separaten Arbeitskopie.
+Der vorhandene Modus `--verify` zum Prüfen einer neu beschriebenen Zielkarte
+bleibt unverändert. Neue Sicherungen mit `-d ... -o ...` verwenden automatisch
+den GiB-weisen Kopier-/Vergleichsablauf. Bei einem Abbruch werden deren temporäre
+Rohkopien wie bisher entfernt; `--resume` gilt nur für vollständig geprüfte Images.

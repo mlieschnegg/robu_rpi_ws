@@ -4,20 +4,75 @@ set -Eeuo pipefail
 export LC_ALL=C
 usage() {
   cat <<'USAGE'
-Usage: sudo ./make_pi_image.sh -d /dev/sdX -o backup.img [--shrink]
-       sudo ./make_pi_image.sh --resume -o backup.img
-       sudo ./make_pi_image.sh --verify /dev/sdY -o backup.img[.gz]
-  -d          Ganzes, vollständig ausgehängtes Quellgerät
-  -o          Neue Image-Datei; bei --verify vorhandenes Image
-  --shrink    Rohkopie behalten; Arbeitskopie verkleinern, prüfen, komprimieren
-  --resume    Geprüfte Rohkopie wiederverwenden; kein dd, keine SD-Karte nötig
-  --verify    Bereits geschriebene Zielkarte VOR dem ersten Boot vergleichen
-Es werden FAT-Bootpartition + ext4-Rootpartition (DOS/MBR) unterstützt.
-Quelle und Zielkarte werden ausschließlich gelesen. Fehler führen zum Abbruch.
+SD-Image erstellen, ein Rettungsimage prüfen oder eine Zielkarte vergleichen
+
+Aufrufe (im Verzeichnis image):
+  sudo ./make_pi_image.sh -d /dev/sdX -o backup.img [--shrink]
+  sudo ./make_pi_image.sh --check-existing -d /dev/sdX -o rescue.img [--shrink]
+  sudo ./make_pi_image.sh --resume -o backup.img
+  sudo ./make_pi_image.sh --verify /dev/sdY -o backup.img[.gz]
+
+Optionen:
+  -d GERÄT         Ganze Originalkarte, nicht eine Partition. Alle Partitionen
+                   müssen ausgehängt sein und während des Laufs so bleiben.
+  -o DATEI         Neue .img-Datei bei einer Sicherung; vorhandene Datei bei
+                   --check-existing, --resume und --verify.
+  --check-existing Vorhandenes vollständiges Roh-/ddrescue-Image mit der
+                   Originalkarte vergleichen. Keine erneute Vollkopie.
+  --shrink         Nach erfolgreicher Prüfung eine Arbeitskopie mit PiShrink
+                   verkleinern, erneut prüfen und als .img.gz komprimieren.
+                   Das ursprüngliche Rohimage bleibt erhalten.
+  --resume         Geprüftes Rohimage mit .sha256 und .bytes wiederverwenden
+                   und Shrink versuchen. Originalkarte nicht erforderlich.
+                   Setzt KEINE abgebrochene Kopie/Abschnittsprüfung fort.
+  --verify GERÄT   Bereits beschriebene NEUE Karte vor dem ersten Boot mit dem
+                   fertigen Image vergleichen. Schreibt nichts auf die Karte.
+  -h, --help       Diese Hilfe anzeigen (ohne sudo möglich).
+
+Vergleich nach jedem GiB:
+  Neue Sicherung: jeweils 1 GiB kopieren, synchronisieren und sofort mit einer
+  erneuten direkten Lesung der Originalkarte vergleichen. Letzter Teil kürzer.
+  --check-existing: vorhandenes Image in denselben Abschnitten vergleichen.
+  1 GiB = 1.073.741.824 Bytes. Bei Abweichung/Lesefehler sofortiger Abbruch mit
+  Abschnitt und Byte-Offset. Keine automatischen Wiederholungen oder Reparaturen.
+  Der gemeldete Abschnitts-Offset beginnt bei 0; cmp meldet die abweichende Stelle
+  relativ zum verglichenen Abschnitt. Das Rettungsimage wird nicht verändert.
+
+Ablauf für ein bereits erstelltes ddrescue-Image:
+  1. ddrescue beenden. Originalkarte und Rettungsimage unverändert lassen.
+     Image und zugehörige .map-Datei behalten. Gerätenamen mit lsblk prüfen.
+  2. sudo ./make_pi_image.sh --check-existing -d /dev/sdX -o rescue.img
+     Erst wenn ALLE Abschnitte und FAT/ext4-Prüfungen erfolgreich sind, entstehen
+     rescue.img.sha256 und rescue.img.bytes. Die ddrescue-Map wird nicht geprüft.
+  3. sudo ./make_pi_image.sh --resume -o rescue.img
+     Ergebnis: rescue.img.gz mit eigenen .sha256- und .bytes-Dateien.
+  4. .img.gz mit einem Image-Writer auf eine NEUE ausreichend große Karte schreiben.
+     Dabei wird die neue Karte überschrieben. Dieses Skript übernimmt das nicht.
+  5. Neue Karte sicher auswerfen, neu anstecken, Partitionen aushängen; vor Boot:
+     sudo ./make_pi_image.sh --verify /dev/sdY -o rescue.img.gz
+  6. Erst bei Erfolg im Pi booten und Funktionen sowie Erweiterung prüfen (df -h /).
+
+Bei Fehlern:
+  Vergleich/Dateisystemprüfung fehlgeschlagen: Ausgabe sichern, nicht shrinken,
+  Original und Rettungsimage nicht reparieren. Diagnose/Reparatur nur auf einer
+  separaten Arbeitskopie. Begleitdateien niemals selbst als Freigabe erzeugen.
+  Neue temporäre Rohkopien werden bei Abbruch gelöscht; vorhandene Rettungsimages
+  bleiben erhalten. Eine Abschnittsprüfung beginnt beim nächsten Aufruf von vorn.
+  Shrink/Platzproblem: geprüfte Rohkopie bleibt erhalten; Ursache beheben, --resume.
+  Vorhandene Ausgaben werden nicht überschrieben. Eine Reparatur kann Image-Bytes
+  verändern: danach kein Originalkartenvergleich als Erfolgskriterium.
+
+Unterstützt: DOS/MBR, FAT-Bootpartition + ext4-Rootpartition, 512-Byte-Sektoren.
+Platzprüfung pro Arbeitsschritt plus 1 GiB Reserve; gzip mit kleinem Größenzuschlag.
+Ein erfolgreicher Vergleich beweist keine inhaltliche Fehlerfreiheit aller Dateien.
+PiShrink installieren (offizielle Anleitung):
+  https://github.com/Drewsif/PiShrink#installation
+Schüler-Übergabe mit Fehlerbehandlung: RETTUNG_UEBERGABE.md neben diesem Skript.
+
 USAGE
 }
 die() { echo "FEHLER: $*" >&2; exit 1; }
-SRC='' OUT='' VERIFY='' LOOP='' WORK='' PACKED='' RAW_READY=false SHRINK=false RESUME=false
+SRC='' OUT='' VERIFY='' LOOP='' WORK='' PACKED='' RAW_READY=false SHRINK=false RESUME=false EXISTING=false
 while (($#)); do
   case "$1" in
     -d|-o|--verify)
@@ -25,6 +80,7 @@ while (($#)); do
       case "$1" in -d) SRC=$2;; -o) OUT=$2;; --verify) VERIFY=$2;; esac
       shift 2;;
     --shrink) SHRINK=true; shift;;
+    --check-existing) EXISTING=true; shift;;
     --resume) RESUME=true; SHRINK=true; shift;;
     -h|--help) usage; exit 0;;
     *) die "Unbekannte Option: $1";;
@@ -94,7 +150,7 @@ for x in a:
 }
 OUT=$(realpath -m "$OUT")
 if [[ -n "$VERIFY" ]]; then
-  [[ -z "$SRC" && "$SHRINK" == false && "$RESUME" == false ]] || die '--verify nicht mit -d/--shrink kombinieren.'
+  [[ -z "$SRC" && "$SHRINK" == false && "$RESUME" == false && "$EXISTING" == false ]] || die '--verify nicht mit -d/--shrink kombinieren.'
   VERIFY=$(realpath "$VERIFY")
   check_device "$VERIFY"
   [[ -f "$OUT" && -f "$OUT.sha256" && -f "$OUT.bytes" ]] || die 'Image, .sha256 oder .bytes fehlt.'
@@ -115,13 +171,20 @@ if [[ -n "$VERIFY" ]]; then
 fi
 [[ "$OUT" == *.img ]] || die 'Ausgabename muss auf .img enden.'
 if $RESUME; then
+  $EXISTING && die '--resume nicht mit --check-existing kombinieren.'
   [[ -z "$SRC" ]] || die '--resume nicht mit -d kombinieren.'
   [[ -f "$OUT" && -f "$OUT.sha256" && -f "$OUT.bytes" ]] || die 'Geprüfte Rohkopie mit .sha256 und .bytes fehlt.'
 else
   [[ -n "$SRC" ]] || die '-d fehlt.'
   SRC=$(realpath "$SRC")
   check_device "$SRC"
-  for path in "$OUT" "$OUT.sha256" "$OUT.bytes"; do
+  if $EXISTING; then
+    [[ -f "$OUT" && ! -L "$OUT" ]] || die 'Vorhandenes reguläres Rohimage fehlt.'
+    [[ ! "$OUT" -ef "$SRC" ]] || die 'Quelle und Image müssen verschieden sein.'
+  else
+    [[ ! -e "$OUT" && ! -L "$OUT" ]] || die "Datei existiert bereits: $OUT"
+  fi
+  for path in "$OUT.sha256" "$OUT.bytes"; do
     [[ ! -e "$path" && ! -L "$path" ]] || die "Datei existiert bereits: $path (für geprüfte Rohkopien --resume verwenden)."
   done
 fi
@@ -139,27 +202,63 @@ if $RESUME; then
 else
   bytes=$(blockdev --getsize64 "$SRC")
 fi
-available=$(df -B1 --output=avail "$(dirname "$OUT")" | tail -n 1)
-required=$((bytes + 1073741824))
-if $SHRINK; then required=$((3 * bytes + 1073741824)); fi
-if $RESUME; then required=$((2 * bytes + 1073741824)); fi
-((available >= required)) || die "Zu wenig freier Platz: vorsorglich $required zusätzliche Bytes erforderlich."
+check_space() {
+  local phase=$1 payload=$2 available required
+  available=$(df -B1 --output=avail "$(dirname "$OUT")" | tail -n 1)
+  available=${available//[[:space:]]/}
+  [[ "$available" =~ ^[0-9]+$ ]] || die 'Freier Speicher nicht ermittelbar.'
+  required=$((payload + 1073741824))
+  echo "==> Platzprüfung ($phase): $available Bytes frei, $required Bytes benötigt."
+  ((available >= required)) || die "Zu wenig freier Platz für $phase: $required Bytes benötigt."
+}
+# Ein GiB, nicht eine Milliarde Bytes. GNU-dd-Offsets in Bytes, auch beim Reststück.
+CHUNK_BYTES=1073741824
+process_chunks() {
+  local image=$1 copy=$2 offset=0 length part=0
+  while ((offset < bytes)); do
+    length=$((bytes - offset))
+    ((length <= CHUNK_BYTES)) || length=$CHUNK_BYTES
+    part=$((part + 1))
+    check_device "$SRC"
+    echo "==> Abschnitt $part: Bytes $offset bis $((offset + length - 1))"
+    if $copy; then
+      dd if="$SRC" of="$image" bs=4M skip="$offset" seek="$offset" count="$length" \
+        iflag=direct,fullblock,skip_bytes,count_bytes oflag=seek_bytes \
+        conv=notrunc,fsync status=progress
+      [[ $(stat -c %s "$image") == "$((offset + length))" ]] || die 'Unvollständiger Abschnitt.'
+    fi
+    check_device "$SRC"
+    # Image vor dem erneuten Lesen synchronisieren und Cache möglichst verwerfen.
+    # Quelle explizit direkt lesen, damit der Vergleich nicht den Lesecache prüft.
+    dd if="$image" of=/dev/null count=0 iflag=nocache status=none
+    if ! dd if="$SRC" bs=4M skip="$offset" count="$length" \
+        iflag=direct,fullblock,skip_bytes,count_bytes status=none |
+        cmp -n "$length" -i "0:$offset" -- - "$image"; then
+      die "Abschnitt $part (ab Byte $offset) nicht identisch oder Lesefehler. Keine Freigabe, kein Shrink."
+    fi
+    echo "==> Abschnitt $part stimmt überein."
+    offset=$((offset + length))
+  done
+  check_device "$SRC"
+}
 write_metadata() {
   local file=$1 size=$2
   printf '%s\n' "$size" > "$file.bytes"
   (cd "$(dirname "$file")"; sha256sum -- "$(basename "$file")" > "$(basename "$file").sha256")
 }
 if ! $RESUME; then
-  WORK=$(mktemp "${OUT}.partial.XXXXXX")
-  echo '==> Lese Quelle vollständig ...'
-  dd if="$SRC" of="$WORK" bs=4M status=progress iflag=fullblock conv=fsync
-  [[ $(stat -c %s "$WORK") == "$bytes" ]] || die 'Unvollständige Kopie.'
-  check_device "$SRC"
-  blockdev --flushbufs "$SRC"
-  echo '==> Zweiter vollständiger Lesedurchlauf: Quelle mit Rohkopie vergleichen ...'
-  cmp -n "$bytes" -- "$WORK" "$SRC"
-  check_image "$WORK"
-  mv -- "$WORK" "$OUT"; WORK=''
+  if $EXISTING; then
+    [[ $(stat -c %s "$OUT") == "$bytes" ]] || die 'Rettungsimage und Quellgerät sind nicht gleich groß.'
+    echo '==> Prüfe vorhandenes Image; Image und ddrescue-Map bleiben unverändert ...'
+    process_chunks "$OUT" false
+    check_image "$OUT"
+  else
+    check_space "Rohkopie" "$bytes"
+    WORK=$(mktemp "${OUT}.partial.XXXXXX")
+    process_chunks "$WORK" true
+    check_image "$WORK"
+    mv -- "$WORK" "$OUT"; WORK=''
+  fi
   write_metadata "$OUT" "$bytes"
   sync
   RAW_READY=true
@@ -167,6 +266,7 @@ if ! $RESUME; then
 fi
 RESULT=$OUT
 if $SHRINK; then
+  check_space "Shrink-Arbeitskopie" "$(stat -c %s "$OUT")"
   WORK=$(mktemp "${OUT}.shrink.XXXXXX")
   echo '==> Erstelle Arbeitskopie für PiShrink (Reflink, wenn unterstützt) ...'
   cp --reflink=auto --sparse=always -- "$OUT" "$WORK"
@@ -174,6 +274,7 @@ if $SHRINK; then
   pishrink.sh "$WORK"
   check_image "$WORK"
   bytes=$(stat -c %s "$WORK")
+  check_space "Komprimierung" "$((bytes + (bytes + 999) / 1000 + 1048576))"
   echo '==> Komprimiere und prüfe gzip ...'
   PACKED=$(mktemp "${OUT}.gz.partial.XXXXXX")
   gzip -c -- "$WORK" > "$PACKED"
