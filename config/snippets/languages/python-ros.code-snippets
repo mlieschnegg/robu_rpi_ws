@@ -653,6 +653,26 @@
             "# ],"
         ],
         "description": "Hilfsfunktion package_files() für ROS 2 setup.py"
+    },
+
+    "ROS twist_mux config": {
+        "prefix": "ros_twist_mux_config",
+        "body": [
+            "twist_mux:",
+            "  ros__parameters:",
+            "    use_stamped: true",
+            "    topics:",
+            "      teleop:",
+            "        topic: cmd_vel/teleop",
+            "        timeout: 0.5",
+            "        priority: 50",
+            "",
+            "      emergency:",
+            "        topic: cmd_vel/emergency",
+            "        timeout: 0.5",
+            "        priority: 255"
+        ],
+        "description": "ROS 2 twist_mux YAML configuration template"
     }
 
 }
