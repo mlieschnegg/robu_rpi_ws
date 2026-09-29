@@ -634,7 +634,7 @@
         ]
     },
 
-    "package_files": {
+    "ROS package_files helper": {
         "prefix": "ros_setup_package_files",
         "body": [
             "def package_files(directory, regex='**'):",
@@ -642,9 +642,17 @@
             "    for path in glob.glob(os.path.join(directory, regex), recursive=True):",
             "        if os.path.isfile(path):",
             "            paths.append(path)",
-            "    return paths"
+            "    return paths",
+            "",
+            "# Verwendung in setup():",
+            "# data_files=[",
+            "#     ('share/ament_index/resource_index/packages', ['resource/' + package_name]),",
+            "#     ('share/' + package_name, ['package.xml']),",
+            "#     (os.path.join('share/', package_name, 'config'), package_files('config/**', '*.*')),",
+            "#     (os.path.join('share/', package_name, 'launch'), package_files('launch/**', '*.launch.py')),",
+            "# ],"
         ],
-        "description": "Collect all files in a directory recursively"
+        "description": "Hilfsfunktion package_files() für ROS 2 setup.py"
     }
 
 }
