@@ -1,12 +1,10 @@
+from robuboard.rpi import utils as board_utils
 from robuboard.rpi.utils import (
-    is_raspberry_pi,
     is_mmteensy,
     is_robuboard,
-    is_robuboard_v1,
     is_bootloader_teensy,
-    is_serial_teensy,
 )
-from robuboard.rpi.utils import IS_ROBUBOARD_V1, IS_ROBUBOARD, GPIOCHIP_HANLDE
+from robuboard.rpi.utils import GPIOCHIP_HANLDE
 from neopixel.common.neopixel_spi_write import neopixel_spi_write
 import time
 import sys
@@ -28,6 +26,17 @@ PCA9536_REG_OUTPUT = 0x01
 
 PCA9536_BIT_TEENSY_RESET = 0
 PCA9536_BIT_TEENSY_BOOT = 1
+
+PCAL6408A_ADDR = 0x20
+PCAL6408A_REG_CONFIG = 0x03
+PCAL6408A_REG_OUTPUT = 0x01
+PCAL6408A_BIT_TEENSY_ONOFF = 3
+PCAL6408A_BIT_TEENSY_BOOT = 5
+PCAL6408A_TEENSY_OUTPUT_MASK = (
+    (1 << PCAL6408A_BIT_TEENSY_ONOFF) | (1 << PCAL6408A_BIT_TEENSY_BOOT)
+)
+# P2/P4 monitor the active-low switch nets; never drive these pins.
+PCAL6408A_TEENSY_INPUT_MASK = (1 << 2) | (1 << 4)
 
 robuboard_init_gpios: bool = False
 robuboard_enable_5v_supply_on: bool = False
@@ -112,28 +121,80 @@ def init_gpios():
     global robuboard_init_gpios
 
     if not robuboard_init_gpios:
-        is_robuboard_v1()
+        is_robuboard()
 
-        if not IS_ROBUBOARD_V1:
+        if board_utils.IS_ROBUBOARD_V3:
+            with smbus.SMBus(1) as bus:
+                # Preload inactive LOW levels before enabling the MOSFET gates.
+                output = bus.read_byte_data(PCAL6408A_ADDR, PCAL6408A_REG_OUTPUT)
+                bus.write_byte_data(
+                    PCAL6408A_ADDR,
+                    PCAL6408A_REG_OUTPUT,
+                    output & ~PCAL6408A_TEENSY_OUTPUT_MASK,
+                )
+                config = bus.read_byte_data(PCAL6408A_ADDR, PCAL6408A_REG_CONFIG)
+                bus.write_byte_data(
+                    PCAL6408A_ADDR,
+                    PCAL6408A_REG_CONFIG,
+                    (config | PCAL6408A_TEENSY_INPUT_MASK)
+                    & ~PCAL6408A_TEENSY_OUTPUT_MASK,
+                )
+        elif board_utils.IS_ROBUBOARD_V1:
+            with smbus.SMBus(1) as bus:
+                # Preload inactive LOW, then configure P0/P1 as outputs.
+                bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, 0x00)
+                bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_CONFIG, 0x0C)
+        else:
             # Teensy reset inactive default
             _gpio_write_once(GPIO_TEENSY_RESET, 0)
-        else:
-            try:
-                bus = smbus.SMBus(1)
-                # Configure pins 0,1 as outputs; 2,3 as inputs (0x0C)
-                bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_CONFIG, 0x0C)
-
-                # Initialize outputs (pins 0 and 1) to LOW
-                bus.write_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT, 0x00)
-                bus.close()
-
-            except Exception as e:
-                print(f"Failed to configure PCA9536: {e}")
 
         # 5V default enable
         enable_5v_supply()
 
         robuboard_init_gpios = True
+
+
+def _teensy_expander():
+    if board_utils.IS_ROBUBOARD_V3:
+        return (
+            PCAL6408A_ADDR,
+            PCAL6408A_REG_OUTPUT,
+            PCAL6408A_BIT_TEENSY_ONOFF,
+            PCAL6408A_BIT_TEENSY_BOOT,
+        )
+    if board_utils.IS_ROBUBOARD_V1:
+        return (
+            PCA9536_ADDR,
+            PCA9536_REG_OUTPUT,
+            PCA9536_BIT_TEENSY_RESET,
+            PCA9536_BIT_TEENSY_BOOT,
+        )
+    return None
+
+
+def _pulse_expander_pin(address: int, register: int, bit: int, duration: float):
+    with smbus.SMBus(1) as bus:
+        output = bus.read_byte_data(address, register)
+        bus.write_byte_data(address, register, output | (1 << bit))
+        try:
+            time.sleep(duration)
+        finally:
+            # Keep unrelated outputs, including USB-C enables, unchanged.
+            output = bus.read_byte_data(address, register)
+            bus.write_byte_data(address, register, output & ~(1 << bit))
+
+
+def _pulse_teensy_onoff(duration: float):
+    expander = _teensy_expander()
+    if expander is not None:
+        address, register, onoff_bit, _ = expander
+        _pulse_expander_pin(address, register, onoff_bit, duration)
+    else:
+        _gpio_write_once(GPIO_TEENSY_RESET, 1)
+        try:
+            time.sleep(duration)
+        finally:
+            _gpio_write_once(GPIO_TEENSY_RESET, 0)
 
 
 def is_on_5v_supply() -> bool:
@@ -174,27 +235,7 @@ def power_off_teensy():
     enable_5v_supply()
     print("powering off teensy...")
 
-    if not IS_ROBUBOARD_V1:
-        _gpio_write_once(GPIO_TEENSY_RESET, 1)
-        time.sleep(5)
-        _gpio_write_once(GPIO_TEENSY_RESET, 0)
-    else:
-        bus = smbus.SMBus(1)
-        val = bus.read_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT)
-        print(f"val (on): {val | (1 << PCA9536_BIT_TEENSY_RESET):b}")
-        bus.write_byte_data(
-            PCA9536_ADDR,
-            PCA9536_REG_OUTPUT,
-            val | (1 << PCA9536_BIT_TEENSY_RESET),
-        )
-        time.sleep(5)
-        print(f"val (off) {val & ~(1 << PCA9536_BIT_TEENSY_RESET):b}")
-        bus.write_byte_data(
-            PCA9536_ADDR,
-            PCA9536_REG_OUTPUT,
-            val & ~(1 << PCA9536_BIT_TEENSY_RESET),
-        )
-        bus.close()
+    _pulse_teensy_onoff(5)
 
 
 def power_on_teensy():
@@ -203,27 +244,7 @@ def power_on_teensy():
     power_off_teensy()
     print("powering on teensy...")
 
-    if not IS_ROBUBOARD_V1:
-        _gpio_write_once(GPIO_TEENSY_RESET, 1)
-        time.sleep(1.0)
-        _gpio_write_once(GPIO_TEENSY_RESET, 0)
-    else:
-        bus = smbus.SMBus(1)
-        val = bus.read_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT)
-        print(f"val (on): {val | (1 << PCA9536_BIT_TEENSY_RESET):b}")
-        bus.write_byte_data(
-            PCA9536_ADDR,
-            PCA9536_REG_OUTPUT,
-            val | (1 << PCA9536_BIT_TEENSY_RESET),
-        )
-        time.sleep(1)
-        print(f"val (off): {val & ~(1 << PCA9536_BIT_TEENSY_RESET):b}")
-        bus.write_byte_data(
-            PCA9536_ADDR,
-            PCA9536_REG_OUTPUT,
-            val & ~(1 << PCA9536_BIT_TEENSY_RESET),
-        )
-        bus.close()
+    _pulse_teensy_onoff(1.0)
 
 
 def start_firmware_teensy(timeout_s: float = 5.0) -> bool:
@@ -278,35 +299,23 @@ def start_bootloader_teensy(force=False):
     init_gpios()
     enable_5v_supply()
 
-    if is_mmteensy() and (not is_bootloader_teensy() or force):
+    expander = _teensy_expander()
+    in_bootloader = is_bootloader_teensy()
+    if in_bootloader and not force:
+        print("bootloader allready activated!")
+    elif expander is not None:
         print("starting bootloader on teensy...")
-
-        if IS_ROBUBOARD_V1 and not is_bootloader_teensy():
-            bus = smbus.SMBus(1)
-            val = bus.read_byte_data(PCA9536_ADDR, PCA9536_REG_OUTPUT)
-            print(f"val (on): {val | (1 << PCA9536_BIT_TEENSY_BOOT):b}")
-            bus.write_byte_data(
-                PCA9536_ADDR,
-                PCA9536_REG_OUTPUT,
-                val | (1 << PCA9536_BIT_TEENSY_BOOT),
-            )
-            time.sleep(0.1)
-            print(f"val (off): {val & ~(1 << PCA9536_BIT_TEENSY_BOOT):b}")
-            bus.write_byte_data(
-                PCA9536_ADDR,
-                PCA9536_REG_OUTPUT,
-                val & ~(1 << PCA9536_BIT_TEENSY_BOOT),
-            )
-            bus.close()
-        elif not is_bootloader_teensy():
-            firmware_path: str = "/home/robu/work/robocup/robocup-teensy/.pio/build/teensymm/firmware.hex"
-            subprocess.run(
-                ["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", firmware_path],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-
-    elif is_bootloader_teensy():
+        address, register, _, boot_bit = expander
+        _pulse_expander_pin(address, register, boot_bit, 0.1)
+    elif is_mmteensy() and not in_bootloader:
+        print("starting bootloader on teensy...")
+        firmware_path: str = "/home/robu/work/robocup/robocup-teensy/.pio/build/teensymm/firmware.hex"
+        subprocess.run(
+            ["teensy_loader_cli", "--mcu=TEENSY_MICROMOD", "-s", firmware_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    elif in_bootloader:
         print("bootloader allready activated!")
     else:
         print("invalid state of teensy! Press boot switch!")
@@ -337,7 +346,7 @@ def start_status_led_with_sudo(r: int = 255, g: int = 255, b: int = 51):
 
 # run this script with sudo!
 def set_status_led(r: int = 50, g: int = 10, b: int = 0, w: int = 0):
-    if IS_ROBUBOARD and not IS_ROBUBOARD_V1:
+    if board_utils.IS_ROBUBOARD_V0:
         from rpi_ws281x import Color, ws, PixelStrip
 
         status_led = PixelStrip(1, GPIO_STATUS_LED, strip_type=ws.SK6812_STRIP_RGBW)
@@ -345,7 +354,7 @@ def set_status_led(r: int = 50, g: int = 10, b: int = 0, w: int = 0):
         status_led.setPixelColor(0, Color(r, g, b, w))
         status_led.show()
 
-    elif IS_ROBUBOARD_V1:
+    elif board_utils.IS_ROBUBOARD_V1 or board_utils.IS_ROBUBOARD_V3:
         # spi = spidev.SpiDev()
         # spi.open(0, 0)
         spi, path = _open_spi_for_led()

@@ -23,11 +23,13 @@ if os.name != 'nt':
 
 global IS_ROBUBOARD_V0
 global IS_ROBUBOARD_V1
+global IS_ROBUBOARD_V3
 global IS_ROBUBOARD
 global GPIOCHIP_HANLDE
 
 IS_ROBUBOARD_V0:bool = False
 IS_ROBUBOARD_V1:bool = False
+IS_ROBUBOARD_V3:bool = False
 IS_ROBUBOARD:bool = False
 
 def get_pi_model() -> str:
@@ -142,7 +144,10 @@ def is_mmteensy():
     import subprocess
     try:
         result = subprocess.run(["lsusb"], capture_output=True, text=True, check=True)
-        return "Teensy" in result.stdout or "NXP Semiconductors SE Blank RT Family"
+        return (
+            "Teensy" in result.stdout
+            or "NXP Semiconductors SE Blank RT Family" in result.stdout
+        )
     except subprocess.CalledProcessError:
         return False 
     
@@ -158,15 +163,26 @@ def is_mmteensy():
 def is_robuboard():
     global IS_ROBUBOARD_V1
     global IS_ROBUBOARD_V0
+    global IS_ROBUBOARD_V3
     global IS_ROBUBOARD
 
-    IS_ROBUBOARD = is_raspberry_pi() and is_mmteensy()
+    IS_ROBUBOARD = False
     IS_ROBUBOARD_V0 = False
     IS_ROBUBOARD_V1 = False
-    if IS_ROBUBOARD: 
-        IS_ROBUBOARD_V1 = i2c_ping(1, 0x41)
-        IS_ROBUBOARD_V0 = not IS_ROBUBOARD_V1
+    IS_ROBUBOARD_V3 = False
+    if is_raspberry_pi():
+        # The expander remains detectable when the Teensy is powered off.
+        IS_ROBUBOARD_V3 = i2c_ping(1, 0x20)
+        if not IS_ROBUBOARD_V3:
+            IS_ROBUBOARD_V1 = i2c_ping(1, 0x41)
+        if not (IS_ROBUBOARD_V3 or IS_ROBUBOARD_V1):
+            IS_ROBUBOARD_V0 = is_mmteensy()
+        IS_ROBUBOARD = IS_ROBUBOARD_V0 or IS_ROBUBOARD_V1 or IS_ROBUBOARD_V3
     return IS_ROBUBOARD
+
+def is_robuboard_v3():
+    is_robuboard()
+    return IS_ROBUBOARD_V3
 
 def is_robuboard_v1():
     global IS_ROBUBOARD_V1
@@ -212,6 +228,7 @@ if __name__ == '__main__':
     print("Is ROBU-Baord: ", is_robuboard())
     print("Is ROBU-Board V0: ", is_robuboard_v0())
     print("Is ROBU-Board V1: ", is_robuboard_v1())
+    print("Is ROBU-Board V3: ", is_robuboard_v3())
     print("I2C-Ping: ", i2c_ping(1, 0x41, 0.1))
 
     model, chip, h = open_header_gpiochip()

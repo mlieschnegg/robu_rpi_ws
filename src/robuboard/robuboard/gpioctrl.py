@@ -5,7 +5,15 @@ import rclpy.publisher
 import rclpy.qos
 import rclpy.timer
 from std_msgs.msg import ByteMultiArray, MultiArrayDimension
-from robuboard.rpi.utils import i2c_ping, is_raspberry_pi, is_robuboard, is_mmteensy, is_robuboard_v0, is_robuboard_v1
+from robuboard.rpi.utils import (
+    i2c_ping,
+    is_raspberry_pi,
+    is_robuboard,
+    is_mmteensy,
+    is_robuboard_v0,
+    is_robuboard_v1,
+    is_robuboard_v3,
+)
 import robuboard.rpi.robuboard as robuboard
 import subprocess
 import time
@@ -162,7 +170,7 @@ class PowerSwitch(Node):
         if self._mmt_power_switch_state[1] and not vals[1]: #mmty enables the power-ic to switch on
             r, g, b = PowerSwitch.LED_RGB_POWERON
             try:
-                if not robuboard.IS_ROBUBOARD_V1:
+                if is_robuboard_v0():
                     command = f"sudo -E env \"ROS_LOCALHOST_ONLY=$ROS_LOCALHOST_ONLY\" \
                         \"RMW_FASTRTPS_USE_SHM=$RMW_FASTRTPS_USE_SHM\" \
                         \"ROS_DOMAIN_ID=$ROS_DOMAIN_ID\" \"RMW_IMPLEMENTATION=$RMW_IMPLEMENTATION\" \
@@ -243,7 +251,7 @@ def main_start_bootloader_teensy(args=None):
     mynode = rclpy.node.Node("start_bootloader_teensy")
     mynode.declare_parameter("force", False)
     try:
-        if is_mmteensy():
+        if is_robuboard() or is_mmteensy():
             mynode.get_logger().info("Starting Teensy Bootloader!")
             force = mynode.get_parameter("force").get_parameter_value().bool_value
             robuboard.start_bootloader_teensy(force)
@@ -321,6 +329,8 @@ def main_is_robuboard(args=None):
                 mynode.get_logger().info("RobuBoard Yes/V0")
             elif is_robuboard_v1():
                 mynode.get_logger().info("RobuBoard Yes/V1")
+            elif is_robuboard_v3():
+                mynode.get_logger().info("RobuBoard Yes/V3")
             else:
                 mynode.get_logger().info("RobuBoard Yes/VX")
         else:

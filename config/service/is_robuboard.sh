@@ -10,9 +10,10 @@ WS_SETUP="$SCRIPT_DIR/../../install/setup.bash"
 source "$WS_SETUP"
 
 /usr/bin/python3 - <<'PY'
-from robuboard.rpi.utils import is_robuboard_v1
+from robuboard.rpi import utils
 
-result = is_robuboard_v1()
-print(f"RobuBoard v1 detected: {result}")
+utils.is_robuboard()
+result = utils.IS_ROBUBOARD_V1 or utils.IS_ROBUBOARD_V3
+print(f"RobuBoard v1/v3 detected: {result}")
 raise SystemExit(0 if result else 1)
 PY
