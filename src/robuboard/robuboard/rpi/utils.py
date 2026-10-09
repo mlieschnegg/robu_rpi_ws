@@ -218,8 +218,10 @@ def wrap_pi(angle_rad: float) -> float:
         angle_rad += 2.0 * math.pi
     return angle_rad
 
-is_robuboard()
-GPIOCHIP_HANLDE = find_header_gpiochip()
+GPIOCHIP_HANLDE: int | None = None
+
+if is_raspberry_pi():
+    GPIOCHIP_HANLDE = find_header_gpiochip()
 
 if __name__ == '__main__':
     print("Is Raspberry Pi: ", is_raspberry_pi())
