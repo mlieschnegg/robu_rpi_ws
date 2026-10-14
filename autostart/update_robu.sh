@@ -1,6 +1,15 @@
 #!/bin/bash
 # Functions only: loaded before updating the repository that contains this file.
 
+robu_is_managed_user() {
+    # Use the actual account, not inherited USER/LOGNAME environment variables.
+    [[ "$(id -un)" == "robu" ]]
+}
+
+robu_build_workspace() {
+    /usr/bin/colcon build
+}
+
 robu_git_health() {
     local workspace="$1" report="$2"
     if [[ ! -d "$workspace/.git" ]]; then
@@ -23,6 +32,10 @@ robu_git_health() {
 }
 
 robu_reclone() {
+    if ! robu_is_managed_user; then
+        echo "[ROBU] Automatic repair is only enabled for the robu account."
+        return 0
+    fi
     local workspace="$1" repository="$2" state="$3"
     local candidate backup="${workspace}.recovery"
     # Only rotate a real recovery directory, never follow a symlink.
@@ -62,6 +75,10 @@ robu_reclone() {
 }
 
 robu_update_and_build() {
+    if ! robu_is_managed_user; then
+        echo "[ROBU] Developer account: automatic .robu update/reset/repair skipped."
+        return 0
+    fi
     local workspace="$1" repository="$2" state="$3"
     local health=0 revision built=""
     mkdir -p "$state" || return 1
@@ -102,7 +119,7 @@ robu_update_and_build() {
     [[ ! -f "$state/built-commit" ]] || read -r built < "$state/built-commit"
     if [[ "$built" != "$revision" || ! -f "$workspace/install/setup.bash" ]]; then
         rm -f -- "$state/built-commit"
-        if (cd "$workspace" && colcon build); then
+        if (cd "$workspace" && robu_build_workspace); then
             [[ -f "$workspace/install/setup.bash" ]] || return 1
             printf '%s\n' "$revision" > "$state/built-commit.tmp" || return 1
             mv -- "$state/built-commit.tmp" "$state/built-commit" || return 1

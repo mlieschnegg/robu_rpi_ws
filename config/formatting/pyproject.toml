@@ -1,0 +1,21 @@
+# Shared ROBU Python / ROS 2 defaults. Keep the Ruff version in sync with requirements-dev.txt.
+[tool.ruff]
+required-version = "==0.17.0"
+target-version = "py310"
+line-length = 99
+indent-width = 4
+extend-exclude = [".venvs", "build", "install", "log", "vendor", "external", "third_party"]
+
+[tool.ruff.lint]
+select = ["E4", "E501", "E9", "F", "I", "N", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204"]
+# Local constants and mathematical matrices may retain uppercase names.
+ignore = ["N806"]
+unfixable = ["F841", "F811"]
+
+[tool.ruff.lint.pep8-naming]
+extend-ignore-names = ["paintEvent", "eventFilter", "resizeEvent", "closeEvent"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+line-ending = "lf"

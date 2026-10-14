@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -e
+# Setup functions can also be sourced safely by the checks.
 
-echo "Starting setup for Raspberry Pi"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/setup_common.sh"
 source "$SCRIPT_DIR/rpi_detect.sh"
 
 WORK_DIR="$HOME/work"
@@ -105,17 +105,22 @@ setup_runtime_permissions() {
     [ -e /dev/mem ] && sudo chmod a+rw /dev/mem
     [ -e /dev/spidev0.0 ] && sudo chmod a+rw /dev/spidev0.0
     [ -e /dev/spidev0.1 ] && sudo chmod a+rw /dev/spidev0.1
+    return 0
 }
 
 setup_python_venv() {
     mkdir -p "$WORK_DIR/.venvs"
 
     if [ ! -d "$VENV_DIR" ]; then
-        python3 -m venv --system-site-packages "$VENV_DIR"
+        "$SYS_PYTHON" -m venv --system-site-packages "$VENV_DIR"
     fi
 
+    if [ ! -x "$VENV_DIR/bin/python" ]; then
+        robu_record_failure 1 "Python venv" "Missing interpreter: $VENV_DIR/bin/python"
+        return 0
+    fi
     source "$VENV_DIR/bin/activate"
-    python -m pip install --upgrade pip
+    "$VENV_DIR/bin/python" -m pip install --upgrade pip
 }
 
 install_system_python_pkg_if_missing() {
@@ -135,15 +140,18 @@ install_venv_python_pkg_if_missing() {
     local module_name="$1"
     local pip_name="${2:-$1}"
 
-    source "$VENV_DIR/bin/activate"
+    if [ ! -x "$VENV_DIR/bin/python" ]; then
+        robu_record_failure 1 "Python package" "Missing venv: $VENV_DIR"
+        return 0
+    fi
 
-    if python -c "import ${module_name}" >/dev/null 2>&1; then
+    if "$VENV_DIR/bin/python" -c "import ${module_name}" >/dev/null 2>&1; then
         echo "[ROBU] Venv Python package already present: ${module_name}"
         return 0
     fi
 
     echo "[ROBU] Installing venv Python package: ${pip_name}"
-    python -m pip install "$pip_name"
+    "$VENV_DIR/bin/python" -m pip install "$pip_name"
 }
 
 install_vl53_packages() {
@@ -231,18 +239,22 @@ print_runtime_checks() {
 
 setup_vscode_remote() {
     # Pre-create Remote User settings, even before the first SSH connection.
-    "$SYS_PYTHON" "$SCRIPT_DIR/setup_vscode_settings.py" --remote
+    "$SYS_PYTHON" "$SCRIPT_DIR/setup_vscode_settings.py" --remote --venv-dir "$VENV_DIR"
 }
 
 main() {
+    echo "Starting setup for Raspberry Pi"
     require_raspberry_pi
+    setup_tool_paths
     install_apt_packages
-    setup_vscode_remote
     setup_groups
     setup_udev_rules
     setup_runtime_permissions
     setup_python_venv
     setup_venv_auto_activate
+    install_python_dev_tools
+    setup_formatting_configs
+    setup_vscode_remote
     install_python_packages
     setup_system_services
     setup_user_services
@@ -250,10 +262,12 @@ main() {
     print_runtime_checks
 
     echo
-    echo "Raspberry Pi setup completed."
     echo "Python venv: $VENV_DIR"
     echo "Activate with: source $VENV_DIR/bin/activate"
     echo "Log out and back in, or reboot, so new group memberships take effect."
 }
 
-main "$@"
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
+    if robu_setup_report; then exit 0; else exit 1; fi
+fi

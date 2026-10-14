@@ -2,6 +2,7 @@
 # Load all code before fetch/reset can replace the running script.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/update_robu.sh" || exit 1
+source "$SCRIPT_DIR/../config/shell/tool_paths.sh" || exit 1
 
 main() {
 
@@ -57,7 +58,7 @@ if [[ -d "$DIR_ROBOCUP_ROS" ]]; then
     echo "checking repository robocup24-ros..."
     cd $DIR_ROBOCUP_ROS
     if ! (git pull | grep -q 'Already up to date.'); then
-        colcon build
+        /usr/bin/colcon build
     fi
     source $DIR_ROBOCUP_ROS/install/setup.bash
 fi

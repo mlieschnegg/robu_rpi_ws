@@ -1,0 +1,12 @@
+# Verified against the publishers' Marketplace pages on 2026-10-14.
+ms-python.python
+ms-python.vscode-pylance
+charliermarsh.ruff
+ms-vscode.cpptools
+platformio.platformio-ide
+ms-vscode-remote.remote-ssh
+ms-vscode-remote.remote-ssh-edit
+ms-vscode.remote-explorer
+Ranch-Hand-Robotics.rde-ros-2
+Ranch-Hand-Robotics.urdf-editor
+pdconsec.vscode-print

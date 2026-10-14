@@ -1,10 +1,7 @@
 #!/bin/bash
 
-#set -e
-
-echo "Starting Ubuntu Server setup"
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/setup_common.sh"
 
 export QT_QPA_PLATFORM=linuxfb
 export QT_QPA_EVDEV_MOUSE_PARAMETERS=/dev/input/event2
@@ -32,7 +29,7 @@ run_sub_setup_scripts() {
         cleanup.sh
     do
         if [ -f "$SCRIPT_DIR/$script" ]; then
-            . "$SCRIPT_DIR/$script"
+            bash "$SCRIPT_DIR/$script"
         else
             echo "Skipping missing script: $script"
         fi
@@ -40,13 +37,16 @@ run_sub_setup_scripts() {
 }
 
 main() {
+    echo "Starting Ubuntu Server setup"
     install_qt_packages
     run_sub_setup_scripts
 
     sudo apt update
     sudo apt upgrade -y
 
-    echo "Ubuntu Server setup completed."
 }
 
-main "$@"
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
+    if robu_setup_report; then exit 0; else exit 1; fi
+fi

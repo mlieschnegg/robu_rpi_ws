@@ -1,0 +1,2 @@
+# Keep in sync with the ROS project's required-version in pyproject.toml.
+ruff==0.17.0

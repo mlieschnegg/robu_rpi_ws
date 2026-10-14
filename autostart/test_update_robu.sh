@@ -19,14 +19,45 @@ git -C "$TEST_ROOT/author" commit -qm initial
 git -C "$TEST_ROOT/author" remote add origin "$repository"
 git -C "$TEST_ROOT/author" push -q origin main
 
-colcon() {
+robu_build_workspace() {
     echo build >> "$state/builds"
     [[ ! -f "$state/fail-build" ]] || return 1
     mkdir -p install
     touch install/setup.bash
 }
+
+# Developer accounts must never fetch/reset/reclone, even without a usable .git.
+# Mock only the identity command, leaving the real account and HOME unchanged.
+id() {
+    if [[ "$1" == "-un" ]]; then echo developer; else command id "$@"; fi
+}
+mkdir -p "$TEST_ROOT/development/.robu"
+echo preserve > "$TEST_ROOT/development/.robu/local.txt"
+robu_update_and_build "$TEST_ROOT/development/.robu" "$repository" "$TEST_ROOT/dev-state"
+robu_reclone "$TEST_ROOT/development/.robu" "$repository" "$TEST_ROOT/dev-state"
+[[ $(cat "$TEST_ROOT/development/.robu/local.txt") == preserve ]]
+[[ ! -e "$TEST_ROOT/dev-state" && ! -e "$TEST_ROOT/development/.robu/.git" ]]
+id() {
+    if [[ "$1" == "-un" ]]; then echo robu; else command id "$@"; fi
+}
+robu_is_managed_user
+
 robu_update_and_build "$workspace" "$repository" "$state"
 [[ $(wc -l < "$state/builds") -eq 1 ]]
+
+# The reported incident: uncommitted tracked changes survive a developer startup.
+id() {
+    if [[ "$1" == "-un" ]]; then echo developer; else command id "$@"; fi
+}
+echo developer-edit > "$workspace/source.txt"
+robu_update_and_build "$workspace" "$repository" "$state"
+[[ $(cat "$workspace/source.txt") == developer-edit ]]
+[[ $(wc -l < "$state/builds") -eq 1 && ! -e "${workspace}.recovery" ]]
+echo initial > "$workspace/source.txt"
+id() {
+    if [[ "$1" == "-un" ]]; then echo robu; else command id "$@"; fi
+}
+
 robu_update_and_build "$workspace" "$repository" "$state"
 [[ $(wc -l < "$state/builds") -eq 1 ]]
 
@@ -67,4 +98,4 @@ rm "$workspace/.git/objects/${object:0:2}/${object:2}"
 robu_update_and_build "$workspace" "$repository" "$state"
 [[ -d "${workspace}.recovery/.git" && ! -f "${workspace}.recovery/untracked.txt" ]]
 git -C "$workspace" fsck --full --no-dangling
-echo 'PASS: clone, no-op, reset, update, build retry, offline, corruption recovery, backup rotation'
+echo 'PASS: account guard, clone, no-op, reset, update, build retry, offline, corruption recovery, backup rotation'

@@ -1,11 +1,7 @@
 #!/bin/bash
 
-#set -e
-
-echo "Installing git and cloning repositories"
-echo "Please wait..."
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/setup_common.sh"
 source "$SCRIPT_DIR/rpi_detect.sh"
 
 ROBU_RPI_WS="$HOME/work/.robu"
@@ -89,8 +85,8 @@ build_ros_workspace_if_possible() {
         return
     fi
 
-    if ! command -v colcon >/dev/null 2>&1; then
-        echo "Skipping ROS workspace build: colcon not found. Run ros_setup.sh first."
+    if [ ! -x /usr/bin/colcon ]; then
+        echo "Skipping ROS workspace build: /usr/bin/colcon not found. Run ros_setup.sh first."
         return
     fi
 
@@ -101,7 +97,7 @@ build_ros_workspace_if_possible() {
 
     source "/opt/ros/${ROS_DISTRO}/setup.bash"
     cd "$ROBOCUP_ROS_WS" || exit 1
-    colcon build
+    /usr/bin/colcon build
     source install/local_setup.bash
 }
 
@@ -120,6 +116,8 @@ build_teensy_workspace_if_possible() {
 }
 
 main() {
+    echo "Installing git and cloning repositories"
+    echo "Please wait..."
     install_packages
     ensure_github_auth
     clone_repositories
@@ -131,8 +129,9 @@ main() {
 
     git config --global user.email "rcj@htl-kaindorf.at"
     git config --global user.name "RCJ"
-
-    echo "Git setup completed."
 }
 
-main "$@"
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
+    if robu_setup_report; then exit 0; else exit 1; fi
+fi

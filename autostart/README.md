@@ -11,6 +11,13 @@ commits are reset to `origin/main`. Do not store student work there. Untracked
 files are not generally cleaned (Git may remove ones obstructing checkout).
 Other RoboCup repositories retain their previous update behavior.
 
+**Automatic update, reset and repair of `.robu` only run as user `robu`.**
+The account is checked with `id -un`, independently of `USER` or `LOGNAME`.
+For developer accounts (for example `mlieschnegg`), the checkout remains untouched;
+update and build manually. The remaining autostart actions keep their previous behavior.
+No setup option is required: student images using account `robu` retain the protection.
+ROS builds use `/usr/bin/colcon`; PlatformIO's Python is kept out of the global PATH.
+
 A successful-build commit marker causes a build on changed/restored source,
 missing installation, initial migration, or an earlier failed/interrupted build.
 ROS is sourced before building. A failed fetch never resets or reclones a healthy

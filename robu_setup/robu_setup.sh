@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -e
+# Setup functions can also be sourced safely by the checks.
 
-echo "Starting setup for ROBU"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/setup_common.sh"
 source "$SCRIPT_DIR/rpi_detect.sh"
 
 WORK_DIR="$HOME/work"
@@ -46,6 +46,7 @@ install_base_packages() {
         p7zip-full \
         curl \
         wget \
+        python3-json5 \
         software-properties-common
 
     if is_raspberry_pi; then
@@ -63,11 +64,15 @@ setup_python_venv() {
     mkdir -p "$WORK_DIR/.venvs"
 
     if [ ! -d "$VENV_DIR" ]; then
-        python3 -m venv --system-site-packages "$VENV_DIR"
+        "$SYS_PYTHON" -m venv --system-site-packages "$VENV_DIR"
     fi
 
+    if [ ! -x "$VENV_DIR/bin/python" ]; then
+        robu_record_failure 1 "Python venv" "Missing interpreter: $VENV_DIR/bin/python"
+        return 0
+    fi
     source "$VENV_DIR/bin/activate"
-    python -m pip install --upgrade pip
+    "$VENV_DIR/bin/python" -m pip install --upgrade pip
 }
 
 install_system_python_pkg_if_missing() {
@@ -87,15 +92,18 @@ install_venv_python_pkg_if_missing() {
     local module_name="$1"
     local pip_name="${2:-$1}"
 
-    source "$VENV_DIR/bin/activate"
+    if [ ! -x "$VENV_DIR/bin/python" ]; then
+        robu_record_failure 1 "Python package" "Missing venv: $VENV_DIR"
+        return 0
+    fi
 
-    if python -c "import ${module_name}" >/dev/null 2>&1; then
+    if "$VENV_DIR/bin/python" -c "import ${module_name}" >/dev/null 2>&1; then
         echo "[ROBU] Venv Python package already present: ${module_name}"
         return 0
     fi
 
     echo "[ROBU] Installing venv Python package: ${pip_name}"
-    python -m pip install "$pip_name"
+    "$VENV_DIR/bin/python" -m pip install "$pip_name"
 }
 
 install_runtime_sensor_packages() {
@@ -146,21 +154,12 @@ install_pc_tools() {
     # User-wide defaults for the image account, before extensions can index files.
     # JSON5 accepts VS Code settings with comments and trailing commas.
     sudo apt install -y python3-json5
-    "$SYS_PYTHON" "$SCRIPT_DIR/setup_vscode_settings.py"
+    "$SYS_PYTHON" "$SCRIPT_DIR/setup_vscode_settings.py" --venv-dir "$VENV_DIR"
 
-    code --install-extension ms-python.python
-    code --install-extension ms-python.vscode-pylance
-    code --install-extension platformio.platformio-ide
-    code --install-extension ms-vscode-remote.remote-ssh
-    code --install-extension ms-vscode-remote.remote-ssh-edit
-    code --install-extension ms-vscode.remote-explorer
-    code --install-extension ranch-hand-robotics.rde-pack
-    code --install-extension ranch-hand-robotics.rde-ros-2
-    code --install-extension ranch-hand-robotics.urdf-editor
-    code --install-extension pdconsec.vscode-print
+    install_vscode_extensions
 
-    if [ -f "$SCRIPT_DIR/link_vsc_snippets" ]; then
-        . "$SCRIPT_DIR/link_vsc_snippets"
+    if [ -f "$SCRIPT_DIR/link_vsc_snippets.sh" ]; then
+        bash "$SCRIPT_DIR/link_vsc_snippets.sh"
     fi
 
     mkdir -p "$HOME/Desktop"
@@ -209,10 +208,14 @@ apply_runtime_device_permissions() {
     [ -e /dev/mem ] && sudo chmod a+rw /dev/mem
     [ -e /dev/spidev0.0 ] && sudo chmod a+rw /dev/spidev0.0
     [ -e /dev/spidev0.1 ] && sudo chmod a+rw /dev/spidev0.1
+    return 0
 }
 
 install_pishrink() {
-    cd "$WORK_DIR" || exit 1
+    if ! cd "$WORK_DIR"; then
+        robu_record_failure 1 "PiShrink" "Missing work directory: $WORK_DIR"
+        return 0
+    fi
     wget -O pishrink.sh https://raw.githubusercontent.com/Drewsif/PiShrink/master/pishrink.sh
     sudo install -m 755 pishrink.sh /usr/local/bin/pishrink.sh
     rm -f pishrink.sh
@@ -233,13 +236,17 @@ print_runtime_checks() {
 }
 
 main() {
+    echo "Starting setup for ROBU"
     mkdir -p "$WORK_DIR"
+    setup_tool_paths
 
     setup_keyboard
     install_base_packages
     install_exaloop
     setup_python_venv
     setup_venv_auto_activate
+    install_python_dev_tools
+    setup_formatting_configs
     install_python_packages
     install_pc_tools
     run_sub_setup_scripts
@@ -253,9 +260,11 @@ main() {
     print_runtime_checks
 
     echo
-    echo "Setup completed successfully!"
     echo "Python venv: $VENV_DIR"
     echo "Activate with: source $VENV_DIR/bin/activate"
 }
 
-main "$@"
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
+    if robu_setup_report; then exit 0; else exit 1; fi
+fi
