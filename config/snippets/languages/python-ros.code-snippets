@@ -605,8 +605,13 @@
     "ROS2 Launch: Separates Terminal": {
         "prefix": "ros_launch_prefix_terminal",
         "body": [
-            "prefix=\"gnome-terminal -- bash -lc 'exec \\\"\\$@\\\"' bash \","
+            "# GNOME Terminal: Fenster bleibt beim Launch-Abbruch offen.",
+            "# prefix=\"gnome-terminal -- bash -lc 'exec \\\"\\$@\\\"' bash \",",
+            "# xterm: Fenster schließt beim Launch-Abbruch mit Strg+C.",
+            "# prefix='xterm -e',",
+            "# Terminator: eigene Instanz; Fenster schließt beim Launch-Abbruch mit Strg+C.",
+            "prefix='terminator --no-dbus -x',"
         ],
-        "description": "In Node(...) einfügen: Startet den Node in einem eigenen GNOME-Terminal."
+        "description": "In Node(...) einfügen: Drei Terminal-Prefix-Varianten. Terminator ist aktiv; GNOME Terminal und xterm sind auskommentiert."
     }
 }
