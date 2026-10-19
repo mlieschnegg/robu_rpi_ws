@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             "dxl_scan=dynamixel_utils.dynamixel_node:main_dxl_scan",
             "dxl_set_id=dynamixel_utils.dynamixel_node:main_dxl_set_id",
+            "dxl_set_baudrate=dynamixel_utils.dynamixel_node:main_dxl_set_baudrate",
         ],
     },
 )

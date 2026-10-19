@@ -63,3 +63,41 @@ def main_dxl_set_id(args=None):
             mynode.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
+
+
+def main_dxl_set_baudrate(args=None):
+    rclpy.init(args=args)
+    mynode: Node = Node("dxl_set_baudrate")
+    dxlctrl = None
+    try:
+        mynode.declare_parameters("", [
+            ("uart_name", ""), ("baudrate", 57600), ("id", 1), ("new_baudrate", 1_000_000)
+        ])
+        mynode.get_logger().info("Setting Dynamixel motor baudrate!")
+        uart_name = mynode.get_parameter("uart_name").get_parameter_value().string_value
+        baudrate = mynode.get_parameter("baudrate").get_parameter_value().integer_value
+        motor_id = mynode.get_parameter("id").get_parameter_value().integer_value
+        new_baudrate = mynode.get_parameter("new_baudrate").get_parameter_value().integer_value
+        mynode.get_logger().info(
+            f"Received parameters: uart_name={uart_name}, baudrate={baudrate}, "
+            f"id={motor_id}, new_baudrate={new_baudrate}"
+        )
+        dxlctrl = Dynamixel(Dynamixel.Config(baudrate=baudrate, device_name=uart_name))
+        dxlctrl.set_baudrate(motor_id, new_baudrate)
+        mynode.get_logger().info(
+            f"Motor {motor_id} baudrate successfully changed from {baudrate} "
+            f"to {new_baudrate} on {uart_name}."
+        )
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        mynode.get_logger().error(f"An error occurred: {e}")
+    finally:
+        if dxlctrl is not None:
+            dxlctrl.disconnect()
+        if mynode is not None:
+            if rclpy.ok():
+                mynode.get_logger().info(f"Node {mynode.get_name()} wird beendet!")
+            mynode.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
