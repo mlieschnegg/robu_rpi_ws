@@ -1,0 +1,23 @@
+# Vorlage für ROS 2 Jazzy: Benutzer und absolute Pfade an die Installation anpassen.
+[Unit]
+Description=MSRobot headless robot controller
+Wants=robot-console.service
+Requires=dev-ttyACM0.device dev-ttyUSB0.device
+After=dev-ttyACM0.device dev-ttyUSB0.device
+
+[Service]
+Type=exec
+User=robu
+WorkingDirectory=/home/robu/work/msrobot/msrobot_demo/msrobot_demo
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/bin/bash -c 'source /opt/ros/jazzy/setup.bash && source /home/robu/work/.robu/install/setup.bash && exec /usr/bin/python3 -u /home/robu/work/msrobot/msrobot_demo/msrobot_demo/teleoperate_gui.py'
+Restart=no
+KillSignal=SIGINT
+KillMode=mixed
+TimeoutStopSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=msrobot
+
+[Install]
+WantedBy=multi-user.target

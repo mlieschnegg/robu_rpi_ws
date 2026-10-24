@@ -1,0 +1,26 @@
+# Vorlage für ROS 2 Jazzy: Benutzer und absolute Pfade an die Installation anpassen.
+[Unit]
+Description=Rubiks Cube real robot (ROS 2)
+Wants=network-online.target robot-console.service
+After=network-online.target
+
+[Service]
+Type=exec
+User=robu
+WorkingDirectory=/home/robu/work/rubiks_cube
+Environment=PYTHONUNBUFFERED=1
+Environment=GST_PLUGIN_PATH=/usr/local/lib/aarch64-linux-gnu/gstreamer-1.0
+Environment=XDG_RUNTIME_DIR=/run/rubiks-cube
+RuntimeDirectory=rubiks-cube
+RuntimeDirectoryMode=0700
+ExecStart=/bin/bash -c 'source /opt/ros/jazzy/setup.bash && source /home/robu/work/rubiks_cube/install/setup.bash && exec ros2 launch rubiks_cube_bringup real_robot.launch.py'
+Restart=no
+KillSignal=SIGINT
+KillMode=mixed
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rubiks-cube
+
+[Install]
+WantedBy=multi-user.target

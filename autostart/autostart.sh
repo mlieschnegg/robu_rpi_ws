@@ -11,9 +11,7 @@ export ROBU_RPI_WS=$HOME/work/.robu
 #export ROBU_RPI_WS=$HOME/work/ROBU/robu_rpi_ws
 
 DIR_MICRO_ROS="$HOME/work/microros_ws"
-DIR_ROBOCUP_ROS="$HOME/work/robocup/robocup-ros"
-DIR_ROBOCUP_TEENSY="$HOME/work/robocup/robocup-teensy"
-DIR_ROBOCUP_GUI="$HOME/work/robocup/robocup-gui"
+DIR_RCJ_RESCUE_MAZE="$HOME/work/rcj-rescue-maze"
 
 # Keep the lock outside the repository so it survives a repair/reclone.
 local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/robu-autostart"
@@ -54,36 +52,19 @@ if [[ -d "$DIR_MICRO_ROS" ]]; then
     source $DIR_MICRO_ROS/install/local_setup.bash
 fi
 
-if [[ -d "$DIR_ROBOCUP_ROS" ]]; then
+if [[ -d "$DIR_RCJ_RESCUE_MAZE" ]]; then
     echo "checking repository robocup24-ros..."
-    cd $DIR_ROBOCUP_ROS
+    cd $DIR_RCJ_RESCUE_MAZE
     if ! (git pull | grep -q 'Already up to date.'); then
+        cd $DIR_RCJ_RESCUE_MAZE/ros/
         /usr/bin/colcon build
     fi
-    source $DIR_ROBOCUP_ROS/install/setup.bash
-fi
-
-if [[ -d "$DIR_ROBOCUP_GUI" ]]; then
-    echo "checking repository robocup24-gui..."
-    cd $DIR_ROBOCUP_GUI
-    if ! (git pull | grep -q 'Already up to date.'); then
-        colcon build
-    fi
-    source $DIR_ROBOCUP_GUI/install/setup.bash
+    source $DIR_RCJ_RESCUE_MAZE/install/setup.bash
 fi
 
 if /usr/bin/python3 -c "from robuboard.rpi.utils import is_robuboard; print(is_robuboard())" | grep -q "True"; then
     echo "Robuboard detected! Starting Robuboard services..."
     
-    if [[ -d "$DIR_ROBOCUP_TEENSY" ]]; then
-        echo "checking repository robocup24-teensy..."
-        cd $DIR_ROBOCUP_TEENSY
-        if ! (git pull | grep -q 'Already up to date.'); then
-            echo "building new firmware for teensy..."
-            ros2 run robuboard build_upload_firmware_teensy
-        fi
-    fi
-
 #    ros2 run robuboard powerswitch &
 #    ros2 launch robuboard set_status_led.launch.py
 fi

@@ -1,0 +1,20 @@
+# Gemeinsame Loganzeige: Login auf Terminal 1, Roboterausgaben auf Terminal 8.
+[Unit]
+Description=Robot live logs on virtual console 8
+After=systemd-vconsole-setup.service
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/chvt 1
+ExecStart=/usr/bin/journalctl --boot --follow --lines=40 --no-pager --unit=msrobot.service --unit=rubiks-cube.service
+StandardInput=null
+StandardOutput=tty
+StandardError=journal
+TTYPath=/dev/tty8
+TTYReset=yes
+TTYVTDisallocate=yes
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
