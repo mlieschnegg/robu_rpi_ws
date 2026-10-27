@@ -196,7 +196,9 @@ setup_system_services() {
         /etc/systemd/system/robuboard_power_off_5v.service
 
     sudo systemctl daemon-reload
-    sudo systemctl enable robuboard_power_off_5v.service
+    # Recreate enablement links, including removal of obsolete shutdown/reboot
+    # links from older installs. Never start this power-cut service with --now.
+    sudo systemctl reenable "$HOME/work/.robu/config/service/robuboard_power_off_5v.service"
 }
 
 setup_user_services() {

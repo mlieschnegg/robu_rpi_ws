@@ -115,3 +115,6 @@ dtoverlay=imx219,cam1
 dtoverlay=uart2-pi5
 #dtoverlay=cam1_imx708_bus_fix
 #dtoverlay=imx708_cam1_full
+# Hailo-8L im M.2-Slot des Robuboard: PCIe mit Gen3 aktivieren
+dtparam=pciex1
+dtparam=pciex1_gen=3
