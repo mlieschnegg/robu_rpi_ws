@@ -1,8 +1,11 @@
 [Unit]
-Description=Power off 5V supply (GPIO26) at end of shutdown
+Description=Power off 5V supply (GPIO26) on poweroff/halt only
 DefaultDependencies=no
-Before=poweroff.target halt.target
-# Absichtlich NICHT vor reboot.target, damit beim Reboot die Versorgung bleibt.
+# Erst nach dem Stoppen der normalen Dienste abschalten.
+After=shutdown.target
+Before=poweroff.target halt.target systemd-poweroff.service systemd-halt.service
+# Before= regelt nur die Reihenfolge. Der Python-Code prüft zusätzlich den
+# tatsächlichen Shutdown-Auftrag und lässt GPIO26 bei Reboot unverändert.
 
 [Service]
 Type=oneshot

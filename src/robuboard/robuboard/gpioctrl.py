@@ -22,7 +22,7 @@ import sys
 class PowerSwitch(Node):
     TIMEOUT_POWEROFF_KEY = 2.0                   #seconds
     TIME_POWER_LED_REFRESH = 0.2                       #seconds
-    TIMEOUT_POWEROFF_OFF = 20.0                         #seconds
+    TIMEOUT_POWEROFF_OFF = 10.0                         #seconds
     LED_RGB_POWERON:tuple[int,int,int] = (0, 16, 0)  #(r,g,b)
     LED_RGB_POWEROFF:tuple[int,int,int] = (64, 0, 0) #(r,g,b)
 
